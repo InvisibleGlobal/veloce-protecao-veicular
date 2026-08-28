@@ -470,7 +470,7 @@ export default function Page() {
 
   return (
     <main className="app-stage">
-      <section className="app-shell">
+      <section className={`app-shell ${view === "Rotinas" ? "app-shell-routines" : ""}`}>
         <header className="topbar">
           <button className="brand" onClick={() => navigate("Dashboard")} aria-label="Ir para a visão geral">
             <img src="/veloce-mark.svg" alt="" />
@@ -849,7 +849,7 @@ function DocumentsView({ onRoutine, onAction }: { onRoutine: (action: string) =>
 
 function RoutinesView({ onRoutine, onAssistant }: { onRoutine: (action: string) => void; onAssistant: () => void }) {
   return (
-    <div>
+    <div className="routines-view">
       <section className="routine-intro panel">
         <div><span className="eyebrow">TRABALHO OPERACIONAL, SIMPLIFICADO</span><h2 className="section-title">O painel executa o trabalho repetitivo sem esconder o controle.</h2><p className="description">Cada rotina deixa claro o que será feito antes da execução.</p></div>
         <button className="button button-dark" onClick={onAssistant}><Icon name="command" size={15}/>Pedir outra ação</button>
