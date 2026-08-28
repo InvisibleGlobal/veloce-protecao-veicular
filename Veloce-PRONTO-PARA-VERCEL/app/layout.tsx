@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Esteira Proteção Veicular",
-  description: "Gestão operacional de eventos, associados, documentos e prestadores.",
+  title: "Veloce OS | Central Operacional",
+  description: "Central de operações para gestão de eventos, associados, documentos e prestadores.",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: "/favicon.svg",
@@ -11,14 +12,10 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="pt-BR">
-      <body className="antialiased">{children}</body>
+      <body>{children}</body>
     </html>
   );
 }
