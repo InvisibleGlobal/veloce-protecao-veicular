@@ -1,29 +1,20 @@
-# Veloce — Central Operacional
+# Veloce — Dashboard protótipo premium v2
 
-Projeto Next.js da central operacional Veloce.
+Projeto Next.js completo, preparado para substituir o conteúdo da pasta usada pelo Vercel.
 
-## Rodar
+## Mudança principal
+O Dashboard foi reconstruído para seguir a organização da referência fornecida: navegação compacta, grande área de visão do dia e bento grid com associado em destaque, progresso, SLA, checklist, agenda operacional, fluxo, rotinas e leitura ao vivo.
 
-```bash
-npm install
-npm run dev
-```
+## Design system
+- Helvetica em toda a UI
+- ícones SVG externos em `/public/icons`
+- glassmorphism sutil
+- amarelo + grafite + off-white
+- grids responsivos e auto-layout
+- hierarquia tipográfica uniforme
+- margens e gutters sistemáticos
 
-## Validar
+## Funcionalidades mantidas
+Esteira, associados, rede, documentos, rotinas, busca, criação de eventos, cadastro de associado, drawer de evento e agente operacional com fallback local + integração opcional via `N8N_WEBHOOK_URL`.
 
-```bash
-npm run typecheck
-npm run build
-```
-
-## Vercel
-
-A pasta que contém este `package.json` deve ser usada como **Root Directory**.
-
-## Agente operacional
-
-As ações principais funcionam localmente no painel. Para encaminhar solicitações adicionais a uma automação externa, configure:
-
-```env
-N8N_WEBHOOK_URL=https://...
-```
+Veja `VALIDACAO-PROTOTIPO.md` para o checklist técnico.
