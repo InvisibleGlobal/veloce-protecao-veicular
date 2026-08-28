@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   ArrowRight,
   Bell,
-  Bot,
   Building2,
   Car,
   Check,
@@ -35,7 +34,6 @@ import {
   Settings,
   ShieldCheck,
   SlidersHorizontal,
-  Sparkles,
   Upload,
   UserPlus,
   Users,
@@ -128,17 +126,17 @@ const nav = [
   ["Prestadores", Wrench],
   ["Documentos", FileText],
   ["Automações", Activity],
-  ["Agente IA", Bot],
+  ["Assistente", MessageSquare],
 ] as const;
 
 const viewCopy: Record<string, string> = {
-  Dashboard: "Visão executiva e ações rápidas da operação em tempo real.",
+  Dashboard: "Tudo que a operação precisa fazer, concentrado em um painel simples, rápido e acionável.",
   Esteira: "Volume por etapa no topo e uma fila operacional preparada para alto volume.",
   Associados: "Cadastre, localize e acompanhe associados com atualização instantânea.",
   Prestadores: "Rede credenciada, capacidade, qualidade e SLA em uma única visão.",
   Documentos: "Recebimento, validação e rastreabilidade dos arquivos da operação.",
   Automações: "Rotinas repetitivas executadas sem depender de acompanhamento manual.",
-  "Agente IA": "Converse com a operação: consulte dados, execute rotinas e atualize eventos.",
+  "Assistente": "Converse com a operação, consulte dados e execute rotinas sem trocar de tela.",
 };
 
 const money = (n: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(n);
@@ -280,25 +278,25 @@ export default function Home() {
   }
 
   function openAgent(command?: string) {
-    setView("Agente IA");
+    setView("Assistente");
     if (command) setAgentCommand(command);
   }
 
   function handlePrimaryAction() {
     if (view === "Associados") setAssociateModal(true);
-    else if (view === "Agente IA") openAgent("Quero cadastrar um novo associado");
+    else if (view === "Assistente") openAgent("Quero cadastrar um novo associado");
     else setEventModal(true);
   }
 
-  const primaryLabel = view === "Associados" ? "Novo associado" : view === "Agente IA" ? "Nova solicitação" : "Novo evento";
-  const PrimaryIcon = view === "Associados" ? UserPlus : view === "Agente IA" ? MessageSquare : Plus;
+  const primaryLabel = view === "Associados" ? "Novo associado" : view === "Assistente" ? "Nova solicitação" : "Novo evento";
+  const PrimaryIcon = view === "Associados" ? UserPlus : view === "Assistente" ? MessageSquare : Plus;
 
   return (
     <div className="ops-shell">
       <aside className={`ops-sidebar ${menu ? "show" : ""}`}>
         <div className="brand-lockup">
           <div className="brand-mark"><ShieldCheck /></div>
-          <div><strong>VELOCE</strong><span>OPS CONTROL</span></div>
+          <div><strong>VELOCE</strong><span>OPERAÇÃO</span></div>
         </div>
         <button className="mobile-close" onClick={() => setMenu(false)} aria-label="Fechar menu"><X /></button>
 
@@ -311,8 +309,8 @@ export default function Home() {
         <p className="nav-label">OPERAÇÃO</p>
         <nav className="primary-nav">
           {nav.map(([name, Icon]) => (
-            <button key={name} className={`${view === name ? "active" : ""} ${name === "Agente IA" ? "ai-nav" : ""}`} onClick={() => { setView(name); setMenu(false); }}>
-              <Icon /><span>{name}</span>{name === "Esteira" && <em>{active}</em>}{name === "Agente IA" && <i className="ai-live-dot" />}
+            <button key={name} className={`${view === name ? "active" : ""} ${name === "Assistente" ? "ai-nav" : ""}`} onClick={() => { setView(name); setMenu(false); }}>
+              <Icon /><span>{name}</span>{name === "Esteira" && <em>{active}</em>}{name === "Assistente" && <i className="ai-live-dot" />}
             </button>
           ))}
         </nav>
@@ -345,11 +343,11 @@ export default function Home() {
           <div className="page-heading">
             <div>
               <div className="eyebrow"><CircleDot />CENTRAL OPERACIONAL · DADOS SINCRONIZADOS</div>
-              <h1>{view}</h1>
+              <h1>{view === "Dashboard" ? "Operação sob controle" : view}</h1>
               <p>{viewCopy[view]}</p>
             </div>
             <div className="heading-actions">
-              <button className="assistant-button" onClick={() => openAgent()}><Bot />Falar com IA<span className="status-led" /></button>
+              <button className="assistant-button" onClick={() => openAgent()}><MessageSquare />Abrir assistente<span className="status-led" /></button>
               <button className="secondary-button"><SlidersHorizontal />Filtros</button>
               <button className="primary-button" onClick={handlePrimaryAction}><PrimaryIcon />{primaryLabel}</button>
             </div>
@@ -361,7 +359,7 @@ export default function Home() {
           {view === "Prestadores" && <Providers />}
           {view === "Documentos" && <Documents items={items} />}
           {view === "Automações" && <Automations />}
-          {view === "Agente IA" && <AgentView items={items} command={agentCommand} onCommandConsumed={() => setAgentCommand(null)} onSetStage={setEventStage} onNewAssociate={() => setAssociateModal(true)} onNewEvent={() => setEventModal(true)} notify={notify} />}
+          {view === "Assistente" && <AgentView items={items} command={agentCommand} onCommandConsumed={() => setAgentCommand(null)} onSetStage={setEventStage} onNewAssociate={() => setAssociateModal(true)} onNewEvent={() => setEventModal(true)} notify={notify} />}
         </section>
       </main>
 
@@ -465,11 +463,11 @@ function OpsHub({ missingDocs, critical, intake, onNewAssociate, onAgent }: { mi
     { title: "Triar novas entradas", caption: "Classificar a fila sem planilha", value: `${intake} aguardando`, icon: <ListChecks />, action: () => onAgent("Triar os novos eventos da etapa Entrada") },
     { title: "Cadastrar associado", caption: "Registro aparece na base na hora", value: "tempo real", icon: <UserPlus />, action: onNewAssociate },
     { title: "Gerar relatório", caption: "Resumo diário pronto para gestão", value: "1 clique", icon: <ReceiptText />, action: () => onAgent("Gerar relatório diário da operação") },
-    { title: "Pedir para a IA", caption: "Consulte ou execute por comando", value: "online", icon: <Bot />, action: () => onAgent() },
+    { title: "Pedir ao assistente", caption: "Consulte dados ou execute ações", value: "online", icon: <MessageSquare />, action: () => onAgent() },
   ];
 
   return <article className="panel ops-hub">
-    <PanelHeader label="TRABALHO OPERACIONAL, SIMPLIFICADO" title="Ações que normalmente dão trabalho" aside={<span className="ai-status"><Sparkles />IA + automações online</span>} />
+    <PanelHeader label="ROTINAS OPERACIONAIS" title="O trabalho pesado, resolvido no painel" aside={<span className="assistant-status"><Network />Automações conectadas</span>} />
     <div className="ops-action-grid">
       {actions.map((item) => <button className="ops-action-card" key={item.title} onClick={item.action}>
         <span className="ops-action-icon">{item.icon}</span>
@@ -612,7 +610,7 @@ function Automations() {
 
 function AgentView({ items, command, onCommandConsumed, onSetStage, onNewAssociate, onNewEvent, notify }: { items: EventItem[]; command: string | null; onCommandConsumed: () => void; onSetStage: (id: string, stage: Stage) => boolean; onNewAssociate: () => void; onNewEvent: () => void; notify: (message: string) => void }) {
   const [messages, setMessages] = useState<AgentMessage[]>([
-    { id: uid(), role: "agent", text: "Estou conectado à operação. Posso consultar a fila, cobrar documentos, revisar SLAs, gerar resumos e atualizar etapas por comando.", meta: "Agente operacional online" },
+    { id: uid(), role: "agent", text: "Estou conectado à operação. Posso consultar a fila, cobrar documentos, revisar SLAs, gerar resumos e atualizar etapas por comando.", meta: "Assistente conectado" },
   ]);
   const [executions, setExecutions] = useState<string[]>(["Sincronização da operação verificada", "18 automações disponíveis", "Base operacional carregada"]);
   const [input, setInput] = useState("");
@@ -710,13 +708,13 @@ function AgentView({ items, command, onCommandConsumed, onSetStage, onNewAssocia
   return <div className="agent-layout">
     <article className="panel agent-console">
       <div className="agent-console-head">
-        <div className="agent-identity"><span className="agent-avatar"><Bot /></span><div><small>AGENTE OPERACIONAL</small><h3>Veloce AI Operator</h3><p><span className="status-led" /> conectado ao painel e às automações</p></div></div>
-        <span className="agent-capability"><Sparkles />EXECUTA AÇÕES</span>
+        <div className="agent-identity"><span className="agent-avatar"><MessageSquare /></span><div><small>CONSOLE OPERACIONAL</small><h3>Assistente Operacional</h3><p><span className="status-led" /> conectado ao painel e às automações</p></div></div>
+        <span className="agent-capability"><Activity />EXECUTA AÇÕES</span>
       </div>
 
       <div className="agent-messages">
         {messages.map((message) => <div className={`agent-message ${message.role}`} key={message.id}>
-          {message.role === "agent" && <span className="message-avatar"><Bot /></span>}
+          {message.role === "agent" && <span className="message-avatar"><MessageSquare /></span>}
           <div><p>{message.text}</p>{message.meta && <small><CheckCircle2 />{message.meta}</small>}</div>
         </div>)}
         {busy && <div className="agent-thinking"><span /><span /><span /> executando</div>}
@@ -725,7 +723,7 @@ function AgentView({ items, command, onCommandConsumed, onSetStage, onNewAssocia
 
       <div className="agent-suggestions">{suggestions.map((suggestion) => <button key={suggestion} onClick={() => void execute(suggestion)}>{suggestion}</button>)}</div>
       <form className="agent-input" onSubmit={(event) => { event.preventDefault(); void execute(input); }}>
-        <Bot /><input value={input} onChange={(event) => setInput(event.target.value)} placeholder="Ex.: mover EV-2841 para Vistoria ou cobrar documentos pendentes" /><button type="submit" disabled={busy || !input.trim()}><Send /></button>
+        <MessageSquare /><input value={input} onChange={(event) => setInput(event.target.value)} placeholder="Ex.: mover EV-2841 para Vistoria ou cobrar documentos pendentes" /><button type="submit" disabled={busy || !input.trim()}><Send /></button>
       </form>
     </article>
 

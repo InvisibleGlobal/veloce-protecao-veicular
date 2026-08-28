@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Veloce OS | Central Operacional",
+  title: "Veloce | Central Operacional",
   description: "Central de operações para gestão de eventos, associados, documentos e prestadores.",
   manifest: "/manifest.webmanifest",
   icons: {
