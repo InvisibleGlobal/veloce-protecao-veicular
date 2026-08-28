@@ -1,6 +1,6 @@
 # Veloce — Central Operacional
 
-Protótipo Next.js de uma central operacional para proteção veicular, reconstruído com foco em UX de alto volume, automação e execução assistida por IA.
+Projeto Next.js reconstruído com foco em operação real, clareza visual e responsividade.
 
 ## Rodar localmente
 
@@ -9,21 +9,23 @@ npm install
 npm run dev
 ```
 
-## Publicar no Vercel
+## Validar antes do deploy
 
-Mantenha estes arquivos diretamente dentro da pasta configurada como **Root Directory** do projeto no Vercel. O preset deve ser **Next.js**.
+```bash
+npm run typecheck
+npm run build
+```
 
-## O que está demonstrável
+## Vercel
 
-- dashboard premium e responsivo;
-- esteira com quantitativos por etapa no topo e tabela escalável;
-- cadastro de associados com atualização instantânea;
-- abertura de eventos com atualização dos contadores;
-- avanço e retorno de etapas;
-- documentos e upload local demonstrativo;
-- rede de prestadores;
-- rotinas operacionais e automações;
-- agente IA que consulta contexto e executa ações no estado do protótipo;
-- persistência local via navegador.
+Use esta pasta como **Root Directory** do projeto no Vercel.
 
-Para produção, substitua a persistência local por Supabase Realtime e conecte as execuções ao n8n usando a estrutura já prevista no projeto.
+## Agente operacional
+
+O endpoint `app/api/agent/route.ts` aceita `POST` e pode encaminhar a solicitação para o n8n quando a variável abaixo estiver configurada:
+
+```env
+N8N_WEBHOOK_URL=https://...
+```
+
+Sem webhook, os comandos locais da interface continuam funcionando.

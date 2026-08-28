@@ -1,72 +1,28 @@
 "use client";
 
-import {
-  Activity,
-  AlertCircle,
-  ArrowDownRight,
-  ArrowLeft,
-  ArrowRight,
-  Bell,
-  CalendarDays,
-  Check,
-  CheckCircle2,
-  ChevronDown,
-  ChevronRight,
-  CircleGauge,
-  Clock3,
-  Command,
-  Download,
-  FileCheck2,
-  FileText,
-  Filter,
-  FolderCheck,
-  Gauge,
-  History,
-  Inbox,
-  Link2,
-  ListFilter,
-  Menu,
-  MessageSquareText,
-  MoreHorizontal,
-  Network,
-  Plus,
-  RefreshCw,
-  Search,
-  Send,
-  Settings,
-  ShieldCheck,
-  SlidersHorizontal,
-  TimerReset,
-  Upload,
-  UserPlus,
-  Users,
-  Wrench,
-  X,
-} from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
+import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
-type Stage = "Entrada" | "Documentos" | "Análise" | "Vistoria" | "Aprovação" | "Reparo" | "Concluído";
+type View = "Dashboard" | "Esteira" | "Associados" | "Rede" | "Documentos" | "Rotinas" | "Assistente";
+type Stage = "Entrada" | "Documentos" | "Analise" | "Vistoria" | "Aprovacao" | "Reparo" | "Concluido";
 type Sla = "Dentro" | "Risco" | "Atrasado";
-type Priority = "Alta" | "Normal";
-type AssociateStatus = "Ativo" | "Pendente" | "Bloqueado";
-type View = "Dashboard" | "Esteira" | "Associados" | "Rede" | "Documentos" | "Automações" | "Agente IA";
+type AssociateStatus = "Ativo" | "Pendente" | "Inativo";
+type IconName =
+  | "grid" | "flow" | "users" | "network" | "file" | "bolt" | "message" | "plus"
+  | "search" | "bell" | "chevron" | "check" | "clock" | "arrow" | "close" | "send"
+  | "filter" | "upload" | "car" | "shield" | "menu" | "trend" | "refresh" | "phone"
+  | "mail" | "pin" | "more" | "documentCheck" | "alert" | "report" | "scan" | "settings"
+  | "eye" | "command" | "activity" | "userPlus" | "building" | "route" | "calendar" | "download";
 
 type EventItem = {
   id: string;
-  member: string;
-  phone: string;
+  associate: string;
   vehicle: string;
   plate: string;
-  type: string;
-  stage: Stage;
-  owner: string;
-  priority: Priority;
-  created: string;
-  updated: string;
-  docs: string[];
-  value: number;
   city: string;
+  stage: Stage;
   sla: Sla;
+  owner: string;
+  updated: string;
 };
 
 type AssociateItem = {
@@ -79,797 +35,979 @@ type AssociateItem = {
   plate: string;
   city: string;
   status: AssociateStatus;
-  joined: string;
   updated: string;
-  live?: boolean;
 };
 
-type Provider = {
-  name: string;
-  category: string;
-  city: string;
-  rating: number;
-  open: number;
-  sla: string;
-  capacity: number;
+type Message = { id: string; role: "user" | "assistant"; text: string };
+
+type Routine = {
+  title: string;
+  description: string;
+  icon: IconName;
+  action: string;
+  accent?: boolean;
 };
 
-type AgentMessage = {
-  id: string;
-  role: "agent" | "user";
-  text: string;
-  meta?: string;
-};
+const EVENT_STORAGE = "veloce-premium-events";
+const ASSOCIATE_STORAGE = "veloce-premium-associates";
+const CHANNEL_NAME = "veloce-premium-live";
 
-const stages: Stage[] = ["Entrada", "Documentos", "Análise", "Vistoria", "Aprovação", "Reparo", "Concluído"];
-const EVENT_STORAGE = "veloce-final-events";
-const ASSOCIATE_STORAGE = "veloce-final-associates";
-
-const seedEvents: EventItem[] = [
-  { id: "EV-2841", member: "Marina Costa", phone: "(62) 99821-4430", vehicle: "Jeep Renegade 2023", plate: "QWE-8H21", type: "Colisão", stage: "Análise", owner: "Camila", priority: "Alta", created: "28/08/2026", updated: "há 8 min", docs: ["CNH.pdf", "Documento-veiculo.pdf"], value: 18400, city: "Goiânia / GO", sla: "Risco" },
-  { id: "EV-2839", member: "Rafael Nunes", phone: "(62) 99108-7731", vehicle: "Honda Civic 2020", plate: "RTA-2D09", type: "Assistência", stage: "Vistoria", owner: "Leandro", priority: "Normal", created: "28/08/2026", updated: "há 14 min", docs: ["CNH.pdf"], value: 3200, city: "Aparecida / GO", sla: "Dentro" },
-  { id: "EV-2835", member: "Bruna Almeida", phone: "(62) 98410-0023", vehicle: "VW T-Cross 2022", plate: "GHI-4B10", type: "Vidros", stage: "Documentos", owner: "Camila", priority: "Alta", created: "27/08/2026", updated: "há 32 min", docs: [], value: 4800, city: "Goiânia / GO", sla: "Atrasado" },
-  { id: "EV-2828", member: "Carlos Ribeiro", phone: "(62) 99661-1522", vehicle: "Toyota Corolla 2021", plate: "KLM-7C44", type: "Roubo/Furto", stage: "Aprovação", owner: "André", priority: "Alta", created: "26/08/2026", updated: "há 48 min", docs: ["B.O.pdf", "CNH.pdf"], value: 92700, city: "Trindade / GO", sla: "Risco" },
-  { id: "EV-2821", member: "Elisa Martins", phone: "(62) 99780-2262", vehicle: "Hyundai HB20 2024", plate: "OPA-1A73", type: "Colisão", stage: "Reparo", owner: "Leandro", priority: "Normal", created: "25/08/2026", updated: "há 1 h", docs: ["Orçamento.pdf"], value: 12100, city: "Goiânia / GO", sla: "Dentro" },
-  { id: "EV-2819", member: "Leonardo Paiva", phone: "(62) 99325-4421", vehicle: "Chevrolet Onix 2022", plate: "RBL-8D17", type: "Colisão", stage: "Entrada", owner: "Camila", priority: "Normal", created: "25/08/2026", updated: "há 1 h", docs: [], value: 7600, city: "Senador Canedo / GO", sla: "Dentro" },
-  { id: "EV-2814", member: "Ana Luiza Reis", phone: "(62) 98201-1198", vehicle: "Nissan Kicks 2021", plate: "PRK-3A21", type: "Assistência", stage: "Documentos", owner: "André", priority: "Normal", created: "24/08/2026", updated: "há 2 h", docs: ["CNH.pdf"], value: 1900, city: "Goiânia / GO", sla: "Dentro" },
-  { id: "EV-2808", member: "Felipe Moraes", phone: "(62) 99890-7782", vehicle: "Fiat Pulse 2024", plate: "SGB-9J38", type: "Colisão", stage: "Vistoria", owner: "Leandro", priority: "Alta", created: "23/08/2026", updated: "há 2 h", docs: ["CNH.pdf", "Fotos.zip"], value: 23600, city: "Goiânia / GO", sla: "Risco" },
-  { id: "EV-2801", member: "Patrícia Lima", phone: "(62) 98511-2300", vehicle: "Ford Territory 2023", plate: "SDQ-6E44", type: "Colisão", stage: "Aprovação", owner: "André", priority: "Normal", created: "22/08/2026", updated: "há 3 h", docs: ["Laudo.pdf", "Orçamento.pdf"], value: 31800, city: "Goiânia / GO", sla: "Dentro" },
-  { id: "EV-2794", member: "Lucas Carvalho", phone: "(62) 99177-4022", vehicle: "VW Nivus 2022", plate: "RXP-1F08", type: "Vidros", stage: "Reparo", owner: "Camila", priority: "Normal", created: "21/08/2026", updated: "há 4 h", docs: ["Orçamento.pdf"], value: 5400, city: "Aparecida / GO", sla: "Dentro" },
-  { id: "EV-2788", member: "João Victor Melo", phone: "(62) 99908-1146", vehicle: "Toyota Hilux 2021", plate: "QZA-0C71", type: "Roubo/Furto", stage: "Concluído", owner: "André", priority: "Alta", created: "19/08/2026", updated: "ontem", docs: ["B.O.pdf", "Termo.pdf"], value: 164000, city: "Goiânia / GO", sla: "Dentro" },
-  { id: "EV-2779", member: "Renata Prado", phone: "(62) 98121-0045", vehicle: "Honda HR-V 2020", plate: "PQR-7H35", type: "Colisão", stage: "Concluído", owner: "Leandro", priority: "Normal", created: "18/08/2026", updated: "ontem", docs: ["Laudo.pdf", "Nota.pdf"], value: 14800, city: "Goiânia / GO", sla: "Dentro" },
-  { id: "EV-2772", member: "Marcelo Tavares", phone: "(62) 99620-5531", vehicle: "BYD Song Plus 2025", plate: "SNL-2A47", type: "Colisão", stage: "Análise", owner: "Camila", priority: "Normal", created: "17/08/2026", updated: "há 5 h", docs: ["CNH.pdf", "Fotos.zip"], value: 27100, city: "Goiânia / GO", sla: "Dentro" },
-  { id: "EV-2764", member: "Juliana Borges", phone: "(62) 99451-9020", vehicle: "Caoa Tiggo 7 2024", plate: "RHT-5G13", type: "Assistência", stage: "Entrada", owner: "André", priority: "Normal", created: "16/08/2026", updated: "há 5 h", docs: [], value: 2400, city: "Aparecida / GO", sla: "Risco" },
-  { id: "EV-2758", member: "Tiago Azevedo", phone: "(62) 98224-3099", vehicle: "VW Taos 2023", plate: "QFP-9D62", type: "Vidros", stage: "Documentos", owner: "Leandro", priority: "Normal", created: "15/08/2026", updated: "há 6 h", docs: ["CNH.pdf"], value: 6100, city: "Goiânia / GO", sla: "Dentro" },
+const stageMeta: Array<{ key: Stage; label: string; helper: string }> = [
+  { key: "Entrada", label: "Entrada", helper: "Novos eventos" },
+  { key: "Documentos", label: "Documentos", helper: "Conferência" },
+  { key: "Analise", label: "Análise", helper: "Validação" },
+  { key: "Vistoria", label: "Vistoria", helper: "Em campo" },
+  { key: "Aprovacao", label: "Aprovação", helper: "Decisão" },
+  { key: "Reparo", label: "Reparo", helper: "Execução" },
+  { key: "Concluido", label: "Concluído", helper: "Finalizados" },
 ];
 
-const baseAssociateId = 1246;
-const seedAssociates: AssociateItem[] = seedEvents.map((item, index) => ({
-  id: `AS-${baseAssociateId - index}`,
-  name: item.member,
-  cpf: "***.***.***-**",
-  phone: item.phone,
-  email: `${item.member.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ /g, ".")}@email.com`,
-  vehicle: item.vehicle,
-  plate: item.plate,
-  city: item.city,
-  status: item.docs.length ? "Ativo" : "Pendente",
-  joined: item.created,
-  updated: item.updated,
-}));
-
-const providers: Provider[] = [
-  { name: "Prime Auto Center", category: "Funilaria e pintura", city: "Goiânia / GO", rating: 4.9, open: 4, sla: "1,8 dia", capacity: 78 },
-  { name: "Vistoria Atlas", category: "Vistoria técnica", city: "Goiânia / GO", rating: 4.8, open: 7, sla: "3,2 h", capacity: 64 },
-  { name: "Glass One", category: "Vidros automotivos", city: "Aparecida / GO", rating: 4.7, open: 3, sla: "5,4 h", capacity: 48 },
-  { name: "Mecânica Norte", category: "Mecânica geral", city: "Goiânia / GO", rating: 4.9, open: 5, sla: "1,2 dia", capacity: 71 },
-  { name: "Auto Rescue 24h", category: "Assistência", city: "Região metropolitana", rating: 4.8, open: 2, sla: "28 min", capacity: 39 },
+const initialEvents: EventItem[] = [
+  { id: "EV-2848", associate: "Marina Costa", vehicle: "Jeep Compass", plate: "RTA-8D21", city: "São Paulo, SP", stage: "Documentos", sla: "Risco", owner: "Larissa", updated: "há 4 min" },
+  { id: "EV-2847", associate: "Rafael Prado", vehicle: "Toyota Corolla", plate: "GHT-2A18", city: "Campinas, SP", stage: "Vistoria", sla: "Dentro", owner: "André", updated: "há 8 min" },
+  { id: "EV-2846", associate: "Bianca Freitas", vehicle: "Honda HR-V", plate: "QXZ-5H11", city: "Santos, SP", stage: "Analise", sla: "Dentro", owner: "Larissa", updated: "há 12 min" },
+  { id: "EV-2845", associate: "Diego Moura", vehicle: "VW T-Cross", plate: "BFD-1C92", city: "Sorocaba, SP", stage: "Entrada", sla: "Dentro", owner: "Nina", updated: "há 16 min" },
+  { id: "EV-2844", associate: "Helena Duarte", vehicle: "Hyundai Creta", plate: "PRL-7J14", city: "Jundiaí, SP", stage: "Aprovacao", sla: "Atrasado", owner: "André", updated: "há 23 min" },
+  { id: "EV-2843", associate: "Lucas Neri", vehicle: "Chevrolet Tracker", plate: "FPN-4M26", city: "São Paulo, SP", stage: "Reparo", sla: "Dentro", owner: "Nina", updated: "há 29 min" },
+  { id: "EV-2842", associate: "Paula Meireles", vehicle: "Nissan Kicks", plate: "LXD-9G31", city: "Guarulhos, SP", stage: "Documentos", sla: "Atrasado", owner: "Larissa", updated: "há 38 min" },
+  { id: "EV-2841", associate: "Marcelo Reis", vehicle: "Fiat Fastback", plate: "SRA-3K20", city: "Osasco, SP", stage: "Entrada", sla: "Risco", owner: "Nina", updated: "há 44 min" },
+  { id: "EV-2840", associate: "Aline Lopes", vehicle: "Renault Kardian", plate: "TNG-6B08", city: "São Paulo, SP", stage: "Concluido", sla: "Dentro", owner: "André", updated: "há 51 min" },
+  { id: "EV-2839", associate: "Caio Leal", vehicle: "VW Nivus", plate: "JQR-2L40", city: "Santo André, SP", stage: "Vistoria", sla: "Risco", owner: "Larissa", updated: "há 1 h" },
+  { id: "EV-2838", associate: "Renata Nunes", vehicle: "Honda City", plate: "DXP-5N73", city: "São Bernardo, SP", stage: "Analise", sla: "Dentro", owner: "André", updated: "há 1 h" },
+  { id: "EV-2837", associate: "Bruno Mota", vehicle: "Toyota Yaris", plate: "MST-8A19", city: "Barueri, SP", stage: "Concluido", sla: "Dentro", owner: "Nina", updated: "há 2 h" },
+  { id: "EV-2836", associate: "Lívia Ramos", vehicle: "Peugeot 2008", plate: "KQA-3D49", city: "São Paulo, SP", stage: "Documentos", sla: "Dentro", owner: "Larissa", updated: "há 2 h" },
+  { id: "EV-2835", associate: "Fábio Teles", vehicle: "BYD Song", plate: "VCP-9A72", city: "Campinas, SP", stage: "Reparo", sla: "Risco", owner: "Nina", updated: "há 3 h" },
+  { id: "EV-2834", associate: "Clara Salles", vehicle: "GWM Haval H6", plate: "KLM-4Q18", city: "São Paulo, SP", stage: "Entrada", sla: "Dentro", owner: "Nina", updated: "há 3 h" },
+  { id: "EV-2833", associate: "Henrique Dias", vehicle: "Fiat Pulse", plate: "RCD-7M61", city: "Campinas, SP", stage: "Aprovacao", sla: "Dentro", owner: "André", updated: "há 4 h" },
 ];
 
-const navItems: View[] = ["Dashboard", "Esteira", "Associados", "Rede", "Documentos", "Automações", "Agente IA"];
+const initialAssociates: AssociateItem[] = [
+  { id: "AS-1952", name: "Marina Costa", cpf: "***.482.***-**", phone: "(11) 99942-3810", email: "marina@exemplo.com", vehicle: "Jeep Compass", plate: "RTA-8D21", city: "São Paulo, SP", status: "Ativo", updated: "agora" },
+  { id: "AS-1951", name: "Rafael Prado", cpf: "***.184.***-**", phone: "(19) 99128-7712", email: "rafael@exemplo.com", vehicle: "Toyota Corolla", plate: "GHT-2A18", city: "Campinas, SP", status: "Ativo", updated: "há 8 min" },
+  { id: "AS-1950", name: "Bianca Freitas", cpf: "***.337.***-**", phone: "(13) 99718-4300", email: "bianca@exemplo.com", vehicle: "Honda HR-V", plate: "QXZ-5H11", city: "Santos, SP", status: "Pendente", updated: "há 12 min" },
+  { id: "AS-1949", name: "Diego Moura", cpf: "***.764.***-**", phone: "(15) 99881-2190", email: "diego@exemplo.com", vehicle: "VW T-Cross", plate: "BFD-1C92", city: "Sorocaba, SP", status: "Ativo", updated: "há 16 min" },
+  { id: "AS-1948", name: "Helena Duarte", cpf: "***.108.***-**", phone: "(11) 99214-6512", email: "helena@exemplo.com", vehicle: "Hyundai Creta", plate: "PRL-7J14", city: "Jundiaí, SP", status: "Ativo", updated: "há 23 min" },
+  { id: "AS-1947", name: "Lucas Neri", cpf: "***.409.***-**", phone: "(11) 99553-8061", email: "lucas@exemplo.com", vehicle: "Chevrolet Tracker", plate: "FPN-4M26", city: "São Paulo, SP", status: "Ativo", updated: "há 29 min" },
+];
 
-const viewDescriptions: Record<View, string> = {
-  Dashboard: "Uma visão única para decidir, executar e acompanhar o que normalmente exigiria várias pessoas e ferramentas.",
-  Esteira: "Volume primeiro. Detalhe depois. Os quantitativos ficam visíveis e a fila continua legível mesmo com centenas de eventos.",
-  Associados: "Cadastro, atualização e consulta no mesmo fluxo, com a base refletindo alterações no instante em que elas acontecem.",
-  Rede: "Prestadores, capacidade e SLA organizados para facilitar escolha, distribuição e acompanhamento.",
-  Documentos: "Recebimento, validação, pendências e histórico sem depender de conferência manual em várias telas.",
-  Automações: "Rotinas repetitivas transformadas em ações previsíveis, auditáveis e executáveis pelo painel.",
-  "Agente IA": "Peça em linguagem natural. O agente consulta o contexto, executa a ação e devolve o resultado na mesma tela.",
+const providers = [
+  { name: "Auto Prime Centro", city: "São Paulo, SP", specialty: "Funilaria e pintura", load: 62, eta: "2 dias", score: "4,9", jobs: 18 },
+  { name: "Vistocar Leste", city: "São Paulo, SP", specialty: "Vistoria técnica", load: 41, eta: "hoje", score: "4,8", jobs: 12 },
+  { name: "Oficina Norte", city: "Guarulhos, SP", specialty: "Mecânica e elétrica", load: 78, eta: "3 dias", score: "4,7", jobs: 24 },
+  { name: "CheckAuto Campinas", city: "Campinas, SP", specialty: "Vistoria e laudos", load: 36, eta: "amanhã", score: "4,9", jobs: 9 },
+];
+
+const documents = [
+  { event: "EV-2848", associate: "Marina Costa", item: "CNH do condutor", status: "Pendente", age: "18 min" },
+  { event: "EV-2842", associate: "Paula Meireles", item: "Fotos do veículo", status: "Atrasado", age: "1 h 12 min" },
+  { event: "EV-2836", associate: "Lívia Ramos", item: "Boletim de ocorrência", status: "Em análise", age: "2 h" },
+  { event: "EV-2833", associate: "Henrique Dias", item: "Comprovante de endereço", status: "Recebido", age: "3 h" },
+];
+
+const routines: Routine[] = [
+  { title: "Cobrar documentos", description: "Identifica pendências, organiza a lista e dispara a cobrança.", icon: "documentCheck", action: "Cobrar documentos pendentes" },
+  { title: "Revisar SLAs", description: "Separa riscos e atrasos para o time atuar primeiro no que importa.", icon: "clock", action: "Revisar SLAs críticos", accent: true },
+  { title: "Distribuir rede", description: "Compara região, capacidade e prazo antes de sugerir prestadores.", icon: "route", action: "Distribuir eventos na rede" },
+  { title: "Triar entradas", description: "Organiza novos eventos e sinaliza o que precisa de validação humana.", icon: "scan", action: "Triar novas entradas" },
+  { title: "Gerar relatório", description: "Consolida volume, SLA, etapas e pendências em um resumo executivo.", icon: "report", action: "Gerar relatório operacional" },
+  { title: "Revisar cadastros", description: "Aponta dados incompletos antes que eles virem gargalo na operação.", icon: "users", action: "Revisar cadastros pendentes" },
+];
+
+const nav: Array<{ view: View; label: string; icon: IconName }> = [
+  { view: "Dashboard", label: "Visão geral", icon: "grid" },
+  { view: "Esteira", label: "Esteira", icon: "flow" },
+  { view: "Associados", label: "Associados", icon: "users" },
+  { view: "Rede", label: "Rede", icon: "network" },
+  { view: "Documentos", label: "Documentos", icon: "file" },
+  { view: "Rotinas", label: "Rotinas", icon: "bolt" },
+];
+
+const viewCopy: Record<View, { eyebrow: string; title: string; subtitle: string }> = {
+  Dashboard: { eyebrow: "CENTRAL OPERACIONAL", title: "Operação de hoje", subtitle: "Volume, prioridades e execução em uma visão clara." },
+  Esteira: { eyebrow: "CONTROLE DE FLUXO", title: "Esteira operacional", subtitle: "Quantitativos primeiro; detalhe somente quando for necessário." },
+  Associados: { eyebrow: "BASE OPERACIONAL", title: "Associados", subtitle: "Cadastro e consulta com atualização imediata no painel." },
+  Rede: { eyebrow: "REDE CREDENCIADA", title: "Prestadores", subtitle: "Capacidade, prazo e distribuição sem planilhas paralelas." },
+  Documentos: { eyebrow: "DOCUMENTAÇÃO", title: "Documentos", subtitle: "Pendências e conferências organizadas por evento." },
+  Rotinas: { eyebrow: "AUTOMAÇÃO OPERACIONAL", title: "Rotinas", subtitle: "Tarefas recorrentes transformadas em ações simples." },
+  Assistente: { eyebrow: "COMANDO OPERACIONAL", title: "Agente de operação", subtitle: "Peça a ação, acompanhe a execução e mantenha o controle na mesma tela." },
 };
 
-const money = (value: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(value);
-const uid = () => Math.random().toString(36).slice(2, 9);
+function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
+  const common = {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+  };
+  const paths: Record<IconName, ReactNode> = {
+    grid: <><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></>,
+    flow: <><path d="M4 6h16"/><path d="M4 12h10"/><path d="M4 18h16"/><circle cx="17" cy="12" r="3"/></>,
+    users: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>,
+    network: <><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="18" r="2.5"/><circle cx="19" cy="18" r="2.5"/><path d="M12 7.5v4"/><path d="m12 11.5-5.2 4.2"/><path d="m12 11.5 5.2 4.2"/></>,
+    file: <><path d="M6 2h9l4 4v16H6z"/><path d="M14 2v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/></>,
+    bolt: <path d="m13 2-8 11h7l-1 9 8-12h-7z"/>,
+    message: <><path d="M21 15a4 4 0 0 1-4 4H8l-5 3 1.5-4.5A8 8 0 1 1 21 15Z"/><path d="M8 10h8M8 14h5"/></>,
+    plus: <><path d="M12 5v14"/><path d="M5 12h14"/></>,
+    search: <><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></>,
+    bell: <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></>,
+    chevron: <path d="m9 18 6-6-6-6"/>,
+    check: <path d="m5 12 4 4L19 6"/>,
+    clock: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>,
+    arrow: <><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></>,
+    close: <><path d="m6 6 12 12"/><path d="m18 6-12 12"/></>,
+    send: <><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></>,
+    filter: <><path d="M4 6h16"/><path d="M7 12h10"/><path d="M10 18h4"/></>,
+    upload: <><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 20h14"/></>,
+    car: <><path d="m5 11 2-5h10l2 5"/><rect x="3" y="11" width="18" height="7" rx="2"/><circle cx="7" cy="18" r="1"/><circle cx="17" cy="18" r="1"/></>,
+    shield: <><path d="M12 3 4.5 6v5c0 5 3.2 8.2 7.5 10 4.3-1.8 7.5-5 7.5-10V6Z"/><path d="m9 12 2 2 4-4"/></>,
+    menu: <><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></>,
+    trend: <><path d="M4 18 10 12l4 4 6-8"/><path d="M16 8h4v4"/></>,
+    refresh: <><path d="M20 7v5h-5"/><path d="M4 17v-5h5"/><path d="M6.1 8a7 7 0 0 1 11.2-1.8L20 12"/><path d="M17.9 16a7 7 0 0 1-11.2 1.8L4 12"/></>,
+    phone: <path d="M7 3 4 5c0 8.3 6.7 15 15 15l2-3-5-3-2 2c-3-1.2-5.8-4-7-7l2-2Z"/>,
+    mail: <><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></>,
+    pin: <><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></>,
+    more: <><circle cx="5" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1" fill="currentColor" stroke="none"/></>,
+    documentCheck: <><path d="M6 2h9l4 4v16H6z"/><path d="M14 2v5h5"/><path d="m9 15 2 2 4-4"/></>,
+    alert: <><path d="M12 3 2.7 19h18.6Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></>,
+    report: <><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></>,
+    scan: <><path d="M8 3H4a1 1 0 0 0-1 1v4"/><path d="M16 3h4a1 1 0 0 1 1 1v4"/><path d="M8 21H4a1 1 0 0 1-1-1v-4"/><path d="M16 21h4a1 1 0 0 0 1-1v-4"/><path d="M7 12h10"/></>,
+    settings: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.12 2.12-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.04 1.56V20h-3v-.09a1.7 1.7 0 0 0-1.04-1.56 1.7 1.7 0 0 0-1.88.34l-.06.06-2.12-2.12.06-.06A1.7 1.7 0 0 0 7 14.69a1.7 1.7 0 0 0-1.56-1.04H5.3v-3h.14A1.7 1.7 0 0 0 7 9.61a1.7 1.7 0 0 0-.34-1.88L6.6 7.67 8.72 5.55l.06.06a1.7 1.7 0 0 0 1.88.34 1.7 1.7 0 0 0 1.04-1.56V4.3h3v.09a1.7 1.7 0 0 0 1.04 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.12 2.12-.06.06a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.56 1.04h.14v3h-.14A1.7 1.7 0 0 0 19.4 15Z"/></>,
+    eye: <><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></>,
+    command: <><path d="M9 6V4a2 2 0 1 0-2 2h10a2 2 0 1 0-2-2v16a2 2 0 1 0 2-2H7a2 2 0 1 0 2 2Z"/></>,
+    activity: <path d="M3 12h4l2-6 4 12 2-6h6"/>,
+    userPlus: <><path d="M15 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M19 8v6"/><path d="M16 11h6"/></>,
+    building: <><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h2M14 7h2M8 11h2M14 11h2M8 15h2M14 15h2"/></>,
+    route: <><circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h3a4 4 0 0 0 4-4v-4a4 4 0 0 1 3-4"/></>,
+    calendar: <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></>,
+    download: <><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></>,
+  };
+  return <svg {...common}>{paths[name]}</svg>;
+}
 
-export default function Home() {
+function StatusChip({ type, children }: { type: "success" | "warning" | "danger" | "neutral"; children: ReactNode }) {
+  return <span className={`status-chip status-${type}`}>{children}</span>;
+}
+
+function PanelHeader({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
+  return (
+    <div className="panel-header">
+      <div>
+        <h2 className="section-title">{title}</h2>
+        {description ? <p className="description panel-description">{description}</p> : null}
+      </div>
+      {action ? <div className="panel-header-action">{action}</div> : null}
+    </div>
+  );
+}
+
+function StatNumber({ value, label, detail, icon }: { value: string | number; label: string; detail: string; icon: IconName }) {
+  return (
+    <div className="hero-stat">
+      <div className="hero-stat-icon"><Icon name={icon} size={16}/></div>
+      <div className="hero-stat-copy">
+        <span className="metric-value">{value}</span>
+        <span className="metric-label">{label}</span>
+        <span className="caption">{detail}</span>
+      </div>
+    </div>
+  );
+}
+
+export default function Page() {
   const [view, setView] = useState<View>("Dashboard");
-  const [events, setEvents] = useState<EventItem[]>(seedEvents);
-  const [associates, setAssociates] = useState<AssociateItem[]>(seedAssociates);
-  const [query, setQuery] = useState("");
-  const [stageFilter, setStageFilter] = useState<Stage | "Todos">("Todos");
-  const [selected, setSelected] = useState<EventItem | null>(null);
-  const [eventModal, setEventModal] = useState(false);
+  const [events, setEvents] = useState<EventItem[]>(initialEvents);
+  const [associates, setAssociates] = useState<AssociateItem[]>(initialAssociates);
+  const [selectedStage, setSelectedStage] = useState<Stage | "Todos">("Todos");
+  const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
   const [associateModal, setAssociateModal] = useState(false);
-  const [agentOpen, setAgentOpen] = useState(false);
-  const [agentSeed, setAgentSeed] = useState<string | undefined>();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
-  const searchRef = useRef<HTMLInputElement>(null);
+  const [eventModal, setEventModal] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [mobileNav, setMobileNav] = useState(false);
+  const [query, setQuery] = useState("");
+  const [toast, setToast] = useState("");
+  const [messages, setMessages] = useState<Message[]>([
+    { id: "m-1", role: "assistant", text: "A operação está carregada. Posso consultar a fila, revisar SLAs, cobrar documentos, abrir cadastros e executar rotinas sem você trocar de tela." },
+  ]);
+  const [agentInput, setAgentInput] = useState("");
+  const [agentBusy, setAgentBusy] = useState(false);
+  const searchRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    const storedEvents = localStorage.getItem(EVENT_STORAGE);
-    const storedAssociates = localStorage.getItem(ASSOCIATE_STORAGE);
-    if (storedEvents) {
-      try { setEvents(JSON.parse(storedEvents)); } catch { /* ignore */ }
-    }
-    if (storedAssociates) {
-      try { setAssociates(JSON.parse(storedAssociates)); } catch { /* ignore */ }
-    }
-    navigator.serviceWorker?.register("/sw.js").catch(() => undefined);
+    try {
+      const storedEvents = localStorage.getItem(EVENT_STORAGE);
+      const storedAssociates = localStorage.getItem(ASSOCIATE_STORAGE);
+      if (storedEvents) setEvents(JSON.parse(storedEvents));
+      if (storedAssociates) setAssociates(JSON.parse(storedAssociates));
+    } catch {}
   }, []);
 
-  useEffect(() => { localStorage.setItem(EVENT_STORAGE, JSON.stringify(events)); }, [events]);
-  useEffect(() => { localStorage.setItem(ASSOCIATE_STORAGE, JSON.stringify(associates)); }, [associates]);
+  useEffect(() => {
+    try { localStorage.setItem(EVENT_STORAGE, JSON.stringify(events)); } catch {}
+  }, [events]);
 
   useEffect(() => {
-    const keydown = (event: KeyboardEvent) => {
+    try { localStorage.setItem(ASSOCIATE_STORAGE, JSON.stringify(associates)); } catch {}
+  }, [associates]);
+
+  useEffect(() => {
+    if (!("BroadcastChannel" in window)) return;
+    const channel = new BroadcastChannel(CHANNEL_NAME);
+    channel.onmessage = (event) => {
+      if (event.data?.type === "events") setEvents(event.data.value);
+      if (event.data?.type === "associates") setAssociates(event.data.value);
+    };
+    return () => channel.close();
+  }, []);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        searchRef.current?.focus();
+        setSearchOpen(true);
       }
       if (event.key === "Escape") {
-        setSelected(null);
-        setEventModal(false);
+        setSelectedEvent(null);
         setAssociateModal(false);
-        setAgentOpen(false);
-        setMenuOpen(false);
+        setEventModal(false);
+        setSearchOpen(false);
+        setMobileNav(false);
       }
     };
-    window.addEventListener("keydown", keydown);
-    return () => window.removeEventListener("keydown", keydown);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  useEffect(() => {
+    if (searchOpen) window.setTimeout(() => searchRef.current?.focus(), 80);
+  }, [searchOpen]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const id = window.setTimeout(() => setToast(""), 2600);
+    return () => window.clearTimeout(id);
+  }, [toast]);
+
+  const counts = useMemo(() => {
+    const result = {} as Record<Stage, number>;
+    stageMeta.forEach((stage) => { result[stage.key] = events.filter((item) => item.stage === stage.key).length; });
+    return result;
+  }, [events]);
+
+  const attentions = useMemo(() => {
+    const result = {} as Record<Stage, number>;
+    stageMeta.forEach((stage) => { result[stage.key] = events.filter((item) => item.stage === stage.key && item.sla !== "Dentro").length; });
+    return result;
+  }, [events]);
 
   const filteredEvents = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     return events.filter((item) => {
-      const byStage = stageFilter === "Todos" || item.stage === stageFilter;
-      const haystack = `${item.id} ${item.member} ${item.vehicle} ${item.plate} ${item.type} ${item.owner} ${item.city}`.toLowerCase();
-      return byStage && (!normalized || haystack.includes(normalized));
+      const stageOk = selectedStage === "Todos" || item.stage === selectedStage;
+      const queryOk = !normalized || [item.id, item.associate, item.vehicle, item.plate, item.city, item.owner].some((value) => value.toLowerCase().includes(normalized));
+      return stageOk && queryOk;
     });
-  }, [events, query, stageFilter]);
+  }, [events, selectedStage, query]);
 
-  const filteredAssociates = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
-    return associates.filter((item) => !normalized || `${item.id} ${item.name} ${item.phone} ${item.email} ${item.vehicle} ${item.plate} ${item.city}`.toLowerCase().includes(normalized));
-  }, [associates, query]);
+  const riskCount = events.filter((item) => item.sla === "Risco").length;
+  const overdueCount = events.filter((item) => item.sla === "Atrasado").length;
+  const activeCount = events.filter((item) => item.stage !== "Concluido").length;
+  const docCount = events.filter((item) => item.stage === "Documentos").length;
 
-  function notify(message: string) {
-    setToast(message);
-    window.setTimeout(() => setToast(null), 2800);
+  function broadcast(type: "events" | "associates", value: EventItem[] | AssociateItem[]) {
+    if (!("BroadcastChannel" in window)) return;
+    const channel = new BroadcastChannel(CHANNEL_NAME);
+    channel.postMessage({ type, value });
+    channel.close();
   }
 
-  function createEvent(form: FormData) {
-    const current = Math.max(...events.map((item) => Number(item.id.replace("EV-", ""))), 2841) + 1;
-    const item: EventItem = {
-      id: `EV-${current}`,
-      member: String(form.get("member") || "Novo associado"),
-      phone: String(form.get("phone") || ""),
-      vehicle: String(form.get("vehicle") || "Veículo não informado"),
-      plate: String(form.get("plate") || "---").toUpperCase(),
-      type: String(form.get("type") || "Colisão"),
-      stage: "Entrada",
-      owner: String(form.get("owner") || "Camila"),
-      priority: String(form.get("priority") || "Normal") as Priority,
-      created: "28/08/2026",
-      updated: "agora",
-      docs: [],
-      value: Number(form.get("value") || 0),
-      city: String(form.get("city") || "Goiânia / GO"),
-      sla: "Dentro",
-    };
-    setEvents((value) => [item, ...value]);
-    setEventModal(false);
-    setStageFilter("Todos");
-    notify(`${item.id} entrou na esteira e os quantitativos foram atualizados.`);
-  }
-
-  function createAssociate(form: FormData) {
-    const id = Math.max(...associates.map((item) => Number(item.id.replace("AS-", ""))), baseAssociateId) + 1;
-    const item: AssociateItem = {
-      id: `AS-${id}`,
-      name: String(form.get("name") || "Novo associado"),
-      cpf: String(form.get("cpf") || "***.***.***-**"),
-      phone: String(form.get("phone") || ""),
-      email: String(form.get("email") || ""),
-      vehicle: String(form.get("vehicle") || "Veículo não informado"),
-      plate: String(form.get("plate") || "---").toUpperCase(),
-      city: String(form.get("city") || "Goiânia / GO"),
-      status: String(form.get("status") || "Ativo") as AssociateStatus,
-      joined: "28/08/2026",
-      updated: "agora",
-      live: true,
-    };
-    setAssociates((value) => [item, ...value.map((existing) => ({ ...existing, live: false }))]);
-    setAssociateModal(false);
-    setView("Associados");
-    notify(`${item.name} foi cadastrado e já está disponível na operação.`);
-  }
-
-  function setEventStage(id: string, stage: Stage) {
-    const exists = events.some((item) => item.id.toLowerCase() === id.toLowerCase());
-    if (!exists) return false;
-    setEvents((value) => value.map((item) => item.id.toLowerCase() === id.toLowerCase() ? { ...item, stage, updated: "agora" } : item));
-    setSelected((item) => item && item.id.toLowerCase() === id.toLowerCase() ? { ...item, stage, updated: "agora" } : item);
-    notify(`${id.toUpperCase()} movido para ${stage}.`);
-    return true;
-  }
-
-  function moveEvent(id: string, direction: number) {
-    const item = events.find((event) => event.id === id);
-    if (!item) return;
-    const nextIndex = Math.max(0, Math.min(stages.length - 1, stages.indexOf(item.stage) + direction));
-    setEventStage(id, stages[nextIndex]);
-  }
-
-  function addFiles(id: string, files: FileList | null) {
-    if (!files?.length) return;
-    const names = [...files].map((file) => file.name);
-    setEvents((value) => value.map((item) => item.id === id ? { ...item, docs: [...item.docs, ...names], updated: "agora" } : item));
-    setSelected((item) => item?.id === id ? { ...item, docs: [...item.docs, ...names], updated: "agora" } : item);
-    notify(`${names.length} arquivo(s) anexado(s) ao ${id}.`);
-  }
-
-  function openAgent(seed?: string) {
-    setAgentSeed(seed);
-    setAgentOpen(true);
-  }
-
-  function go(viewName: View) {
-    setView(viewName);
-    setMenuOpen(false);
+  function navigate(next: View) {
+    setView(next);
+    setMobileNav(false);
     setQuery("");
-    if (viewName !== "Esteira") setStageFilter("Todos");
+    if (next !== "Esteira") setSelectedStage("Todos");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
+
+  function moveEvent(id: string, stage: Stage) {
+    const next = events.map((event) => event.id === id ? { ...event, stage, updated: "agora" } : event);
+    setEvents(next);
+    broadcast("events", next);
+    const refreshed = next.find((event) => event.id === id) || null;
+    setSelectedEvent(refreshed);
+    setToast(`${id} movido para ${stageMeta.find((item) => item.key === stage)?.label}.`);
+  }
+
+  function createAssociate(data: Omit<AssociateItem, "id" | "updated">) {
+    const number = 1953 + associates.length;
+    const nextItem: AssociateItem = { ...data, id: `AS-${number}`, updated: "agora" };
+    const next = [nextItem, ...associates];
+    setAssociates(next);
+    broadcast("associates", next);
+    setAssociateModal(false);
+    setToast(`${nextItem.name} foi cadastrado e já está disponível na base.`);
+  }
+
+  function createEvent(data: Omit<EventItem, "id" | "updated">) {
+    const number = 2849 + events.length;
+    const nextItem: EventItem = { ...data, id: `EV-${number}`, updated: "agora" };
+    const next = [nextItem, ...events];
+    setEvents(next);
+    broadcast("events", next);
+    setEventModal(false);
+    setToast(`${nextItem.id} criado e incluído na esteira.`);
+  }
+
+  function handleRoutine(action: string) {
+    if (action.toLowerCase().includes("cobrar")) {
+      setToast(`${docCount} eventos com documentos foram organizados para cobrança.`);
+    } else if (action.toLowerCase().includes("sla")) {
+      setToast(`${riskCount + overdueCount} eventos precisam de atenção por SLA.`);
+    } else if (action.toLowerCase().includes("relatório")) {
+      downloadReport();
+      return;
+    } else {
+      setToast(`${action}: execução registrada.`);
+    }
+  }
+
+  function downloadReport() {
+    const content = [
+      "Veloce — resumo operacional",
+      `Eventos ativos: ${activeCount}`,
+      `Em risco: ${riskCount}`,
+      `Atrasados: ${overdueCount}`,
+      `Associados: ${associates.length}`,
+      "",
+      ...stageMeta.map((stage) => `${stage.label}: ${counts[stage.key]}`),
+    ].join("\n");
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "veloce-resumo-operacional.txt";
+    anchor.click();
+    URL.revokeObjectURL(url);
+    setToast("Resumo operacional gerado.");
+  }
+
+  async function executeAgent(text: string) {
+    const value = text.trim();
+    if (!value || agentBusy) return;
+    setMessages((current) => [...current, { id: crypto.randomUUID(), role: "user", text: value }]);
+    setAgentInput("");
+    setAgentBusy(true);
+
+    const lower = value.toLowerCase();
+    let localReply = "";
+    const eventMatch = value.match(/EV-?\d+/i)?.[0]?.toUpperCase().replace("EV", "EV-").replace("EV--", "EV-");
+    const stage = stageMeta.find((item) => lower.includes(item.label.toLowerCase()) || lower.includes(item.key.toLowerCase()));
+
+    if (eventMatch && stage) {
+      const exists = events.some((event) => event.id === eventMatch);
+      if (exists) {
+        moveEvent(eventMatch, stage.key);
+        localReply = `${eventMatch} foi atualizado para ${stage.label}. Os quantitativos da esteira já refletem a mudança.`;
+      }
+    } else if (lower.includes("cadastrar") && lower.includes("associ")) {
+      setAssociateModal(true);
+      localReply = "Abri o cadastro de associado. Ao salvar, a base e os indicadores são atualizados imediatamente.";
+    } else if (lower.includes("novo evento") || (lower.includes("criar") && lower.includes("evento"))) {
+      setEventModal(true);
+      localReply = "Abri o cadastro de evento. Depois de salvar, ele entra na etapa Entrada e aparece na fila.";
+    } else if (lower.includes("sla")) {
+      localReply = `Há ${riskCount} eventos em risco e ${overdueCount} atrasados. Posso abrir a esteira filtrada para você.`;
+    } else if (lower.includes("document")) {
+      localReply = `Há ${docCount} eventos na etapa Documentos. Organizei essa frente como prioridade operacional.`;
+    } else if (lower.includes("relat")) {
+      downloadReport();
+      localReply = "O resumo operacional foi gerado e o arquivo está pronto no navegador.";
+    }
+
+    try {
+      const response = await fetch("/api/agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: value, context: { activeCount, riskCount, overdueCount, selectedStage } }),
+      });
+      const data = await response.json();
+      const reply = localReply || data?.reply || "Solicitação processada.";
+      setMessages((current) => [...current, { id: crypto.randomUUID(), role: "assistant", text: reply }]);
+    } catch {
+      setMessages((current) => [...current, { id: crypto.randomUUID(), role: "assistant", text: localReply || "Não consegui alcançar a automação externa agora. Os comandos locais continuam disponíveis." }]);
+    } finally {
+      setAgentBusy(false);
+    }
+  }
+
+  const globalSearch = useMemo(() => {
+    const value = query.trim().toLowerCase();
+    if (!value) return [];
+    const associateResults = associates
+      .filter((item) => [item.name, item.plate, item.city, item.id].some((field) => field.toLowerCase().includes(value)))
+      .slice(0, 4)
+      .map((item) => ({ kind: "Associado", title: item.name, detail: `${item.id} · ${item.vehicle} · ${item.plate}`, icon: "users" as IconName, action: () => navigate("Associados") }));
+    const eventResults = events
+      .filter((item) => [item.id, item.associate, item.plate, item.city].some((field) => field.toLowerCase().includes(value)))
+      .slice(0, 4)
+      .map((item) => ({ kind: "Evento", title: item.id, detail: `${item.associate} · ${item.vehicle} · ${item.stage}`, icon: "flow" as IconName, action: () => { setSearchOpen(false); setSelectedEvent(item); } }));
+    return [...eventResults, ...associateResults];
+  }, [query, events, associates]);
+
+  const pageInfo = viewCopy[view];
 
   return (
     <main className="app-stage">
-      <section className="product-shell">
-        <div className="ambient-light ambient-one" />
-        <div className="ambient-light ambient-two" />
-
+      <section className="app-shell">
         <header className="topbar">
-          <button className="brand" onClick={() => go("Dashboard")} aria-label="Veloce início">
-            <VeloceMark />
-            <span>Veloce</span>
+          <button className="brand" onClick={() => navigate("Dashboard")} aria-label="Ir para a visão geral">
+            <img src="/veloce-mark.svg" alt="" />
+            <span><strong>Veloce</strong><small>Central operacional</small></span>
           </button>
 
-          <nav className={`main-nav ${menuOpen ? "open" : ""}`}>
-            {navItems.map((item) => (
-              <button key={item} className={view === item ? "active" : ""} onClick={() => go(item)}>{item}</button>
+          <nav className={`main-nav ${mobileNav ? "is-open" : ""}`} aria-label="Navegação principal">
+            {nav.map((item) => (
+              <button key={item.view} className={view === item.view ? "active" : ""} onClick={() => navigate(item.view)}>
+                <Icon name={item.icon} size={15}/><span>{item.label}</span>
+              </button>
             ))}
           </nav>
 
           <div className="top-actions">
-            <button className="top-settings"><Settings /><span>Configurações</span></button>
-            <button className="round-icon notification" aria-label="Notificações"><Bell /><i /></button>
-            <button className="round-icon search-trigger" aria-label="Buscar" onClick={() => searchRef.current?.focus()}><Search /></button>
-            <button className="mobile-menu" aria-label="Abrir menu" onClick={() => setMenuOpen((value) => !value)}>{menuOpen ? <X /> : <Menu />}</button>
+            <button className="icon-button search-trigger" aria-label="Pesquisar" onClick={() => { setQuery(""); setSearchOpen(true); }}>
+              <Icon name="search" size={16}/><span className="shortcut">⌘K</span>
+            </button>
+            <button className="icon-button" aria-label="Notificações" onClick={() => setToast(`${riskCount + overdueCount} itens exigem atenção.`)}>
+              <Icon name="bell" size={16}/><i className="notification-dot"/>
+            </button>
+            <button className="assistant-top" onClick={() => navigate("Assistente")}><Icon name="command" size={15}/><span>Agente</span></button>
+            <button className="profile-button" aria-label="Perfil"><span>DV</span></button>
+            <button className="icon-button mobile-menu" aria-label="Abrir menu" onClick={() => setMobileNav((value) => !value)}><Icon name={mobileNav ? "close" : "menu"} size={18}/></button>
           </div>
         </header>
 
-        <section className="workspace">
-          <WorkspaceHeader
-            view={view}
-            events={events}
-            associates={associates}
-            query={query}
-            onQuery={setQuery}
-            searchRef={searchRef}
-            onNewEvent={() => setEventModal(true)}
-            onNewAssociate={() => setAssociateModal(true)}
-            onAgent={() => openAgent()}
-          />
+        <div className="page-shell">
+          <header className="page-header">
+            <div className="page-copy">
+              <span className="eyebrow">{pageInfo.eyebrow}</span>
+              <h1 className="page-title">{pageInfo.title}</h1>
+              <p className="subtitle">{pageInfo.subtitle}</p>
+            </div>
+            <div className="page-actions">
+              <button className="button button-light" onClick={() => setAssociateModal(true)}><Icon name="userPlus" size={15}/>Novo associado</button>
+              <button className="button button-dark" onClick={() => setEventModal(true)}><Icon name="plus" size={15}/>Novo evento</button>
+            </div>
+          </header>
 
-          {view === "Dashboard" && (
-            <Dashboard
+          {view === "Dashboard" ? (
+            <DashboardView
               events={events}
               associates={associates}
-              onOpenEvent={setSelected}
-              onPipeline={() => go("Esteira")}
-              onAssociate={() => setAssociateModal(true)}
-              onEvent={() => setEventModal(true)}
-              onAgent={openAgent}
+              counts={counts}
+              attentions={attentions}
+              activeCount={activeCount}
+              riskCount={riskCount}
+              overdueCount={overdueCount}
+              onStage={(stage) => { setSelectedStage(stage); navigate("Esteira"); }}
+              onEvent={setSelectedEvent}
+              onRoutine={handleRoutine}
+              onNavigate={navigate}
+              onAssistant={() => navigate("Assistente")}
             />
-          )}
-          {view === "Esteira" && (
+          ) : null}
+
+          {view === "Esteira" ? (
             <PipelineView
+              counts={counts}
+              attentions={attentions}
+              selectedStage={selectedStage}
+              onSelectStage={setSelectedStage}
               events={filteredEvents}
-              allEvents={events}
-              stageFilter={stageFilter}
-              onStageFilter={setStageFilter}
-              onOpen={setSelected}
-              onNew={() => setEventModal(true)}
+              query={query}
+              onQuery={setQuery}
+              onEvent={setSelectedEvent}
+              onReset={() => { setSelectedStage("Todos"); setQuery(""); }}
             />
-          )}
-          {view === "Associados" && <AssociatesView associates={filteredAssociates} onNew={() => setAssociateModal(true)} />}
-          {view === "Rede" && <ProvidersView />}
-          {view === "Documentos" && <DocumentsView events={events} onOpen={setSelected} onAgent={openAgent} />}
-          {view === "Automações" && <AutomationsView notify={notify} onAgent={openAgent} />}
-          {view === "Agente IA" && (
-            <AgentWorkspace
-              events={events}
-              associates={associates}
-              initialCommand={agentSeed}
-              onConsume={() => setAgentSeed(undefined)}
-              onSetStage={setEventStage}
-              onNewAssociate={() => setAssociateModal(true)}
-              onNewEvent={() => setEventModal(true)}
-              notify={notify}
+          ) : null}
+
+          {view === "Associados" ? (
+            <AssociatesView associates={associates} onNew={() => setAssociateModal(true)} />
+          ) : null}
+
+          {view === "Rede" ? <ProvidersView /> : null}
+          {view === "Documentos" ? <DocumentsView onRoutine={handleRoutine} /> : null}
+          {view === "Rotinas" ? <RoutinesView onRoutine={handleRoutine} onAssistant={() => navigate("Assistente")} /> : null}
+
+          {view === "Assistente" ? (
+            <AssistantView
+              messages={messages}
+              input={agentInput}
+              onInput={setAgentInput}
+              onSend={executeAgent}
+              busy={agentBusy}
+              onRoutine={(action) => executeAgent(action)}
+              activeCount={activeCount}
+              riskCount={riskCount}
+              overdueCount={overdueCount}
+              associates={associates.length}
             />
-          )}
-        </section>
+          ) : null}
+        </div>
       </section>
 
-      <button className="agent-fab" onClick={() => openAgent()}><Command /><span>Falar com o agente</span><i /></button>
-
-      {eventModal && <EventModal onClose={() => setEventModal(false)} onCreate={createEvent} />}
-      {associateModal && <AssociateModal onClose={() => setAssociateModal(false)} onCreate={createAssociate} />}
-      {selected && <EventDrawer item={selected} onClose={() => setSelected(null)} onMove={(direction) => moveEvent(selected.id, direction)} onFiles={(files) => addFiles(selected.id, files)} />}
-      {agentOpen && view !== "Agente IA" && (
-        <AgentDrawer
-          events={events}
-          associates={associates}
-          initialCommand={agentSeed}
-          onClose={() => { setAgentOpen(false); setAgentSeed(undefined); }}
-          onSetStage={setEventStage}
-          onNewAssociate={() => { setAgentOpen(false); setAssociateModal(true); }}
-          onNewEvent={() => { setAgentOpen(false); setEventModal(true); }}
-          onFull={() => { setAgentOpen(false); go("Agente IA"); }}
-          notify={notify}
-        />
-      )}
-      {toast && <div className="toast"><CheckCircle2 /><span>{toast}</span></div>}
+      {selectedEvent ? <EventDrawer event={selectedEvent} onClose={() => setSelectedEvent(null)} onMove={moveEvent}/> : null}
+      {associateModal ? <AssociateModal onClose={() => setAssociateModal(false)} onSubmit={createAssociate}/> : null}
+      {eventModal ? <EventModal associates={associates} onClose={() => setEventModal(false)} onSubmit={createEvent}/> : null}
+      {searchOpen ? <SearchDialog query={query} onQuery={setQuery} results={globalSearch} onClose={() => { setSearchOpen(false); setQuery(""); }} inputRef={searchRef}/> : null}
+      {toast ? <div className="toast"><Icon name="check" size={15}/><span>{toast}</span></div> : null}
     </main>
   );
 }
 
-function WorkspaceHeader({ view, events, associates, query, onQuery, searchRef, onNewEvent, onNewAssociate, onAgent }: {
-  view: View;
+function DashboardView({
+  events, associates, counts, attentions, activeCount, riskCount, overdueCount, onStage, onEvent, onRoutine, onNavigate, onAssistant,
+}: {
   events: EventItem[];
   associates: AssociateItem[];
-  query: string;
-  onQuery: (value: string) => void;
-  searchRef: React.RefObject<HTMLInputElement | null>;
-  onNewEvent: () => void;
-  onNewAssociate: () => void;
-  onAgent: () => void;
+  counts: Record<Stage, number>;
+  attentions: Record<Stage, number>;
+  activeCount: number;
+  riskCount: number;
+  overdueCount: number;
+  onStage: (stage: Stage) => void;
+  onEvent: (event: EventItem) => void;
+  onRoutine: (action: string) => void;
+  onNavigate: (view: View) => void;
+  onAssistant: () => void;
 }) {
-  const active = events.filter((item) => item.stage !== "Concluído");
-  const inSla = active.filter((item) => item.sla === "Dentro").length;
-  const sla = active.length ? Math.round((inSla / active.length) * 100) : 100;
-  const critical = active.filter((item) => item.sla !== "Dentro" || item.priority === "Alta").length;
-  const progress = Math.min(100, Math.round((events.filter((item) => item.stage === "Concluído").length / events.length) * 100));
-
+  const priority = events.filter((item) => item.sla !== "Dentro").slice(0, 4);
   return (
-    <div className="workspace-head">
-      <div className="workspace-title">
-        <div className="kicker"><span className="live-dot" /> CENTRAL OPERACIONAL <b>AO VIVO</b></div>
-        <h1>{view === "Dashboard" ? "Bom dia, Débora." : view}</h1>
-        <p>{viewDescriptions[view]}</p>
-      </div>
-
-      <div className="head-actions">
-        <div className="global-search">
-          <Search />
-          <input ref={searchRef} value={query} onChange={(event) => onQuery(event.target.value)} placeholder="Buscar associado, evento, placa..." />
-          <kbd>⌘ K</kbd>
-        </div>
-        <button className="button button-ghost" onClick={onAgent}><Command />Agente IA</button>
-        <button className="button button-dark" onClick={view === "Associados" ? onNewAssociate : onNewEvent}>{view === "Associados" ? <UserPlus /> : <Plus />}{view === "Associados" ? "Novo associado" : "Novo evento"}</button>
-      </div>
-
-      {view === "Dashboard" && (
-        <div className="hero-status">
-          <div className="flow-stat">
-            <div className="flow-labels"><span>Entrada</span><span>Em execução</span><span>Concluídos</span></div>
-            <div className="flow-bars">
-              <div className="flow-pill dark">{events.filter((item) => item.stage === "Entrada").length}</div>
-              <div className="flow-pill yellow">{active.length}</div>
-              <div className="flow-line"><i style={{ width: `${Math.max(24, progress)}%` }} /></div>
-              <div className="flow-pill outline">{events.filter((item) => item.stage === "Concluído").length}</div>
-            </div>
+    <div className="dashboard-view">
+      <section className="hero-layout">
+        <div className="hero-intro">
+          <div className="hero-progress">
+            <div className="hero-progress-top"><span className="label">FLUXO DO DIA</span><span className="caption">78% dentro do SLA</span></div>
+            <div className="progress-track"><i style={{ width: "78%" }}/></div>
           </div>
-
-          <div className="headline-kpis">
-            <HeadlineMetric label="Associados" value={String(associates.length + 1231)} icon={<Users />} />
-            <HeadlineMetric label="Eventos ativos" value={String(active.length).padStart(2, "0")} icon={<CircleGauge />} />
-            <HeadlineMetric label="SLA no prazo" value={`${sla}%`} icon={<TimerReset />} />
-            <HeadlineMetric label="Atenção" value={String(critical).padStart(2, "0")} icon={<AlertCircle />} />
+          <div className="hero-kpis">
+            <StatNumber value={activeCount} label="Eventos ativos" detail="em acompanhamento" icon="activity"/>
+            <StatNumber value={riskCount + overdueCount} label="Atenções" detail={`${overdueCount} atrasados`} icon="alert"/>
+            <StatNumber value={associates.length} label="Associados" detail="base disponível" icon="users"/>
           </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function HeadlineMetric({ label, value, icon }: { label: string; value: string; icon: ReactNode }) {
-  return <div className="headline-metric"><span>{icon}{label}</span><strong>{value}</strong></div>;
-}
-
-function Dashboard({ events, associates, onOpenEvent, onPipeline, onAssociate, onEvent, onAgent }: {
-  events: EventItem[];
-  associates: AssociateItem[];
-  onOpenEvent: (item: EventItem) => void;
-  onPipeline: () => void;
-  onAssociate: () => void;
-  onEvent: () => void;
-  onAgent: (seed?: string) => void;
-}) {
-  const active = events.filter((item) => item.stage !== "Concluído");
-  const focus = active.find((item) => item.sla === "Atrasado") || active[0];
-  const missingDocs = active.filter((item) => item.docs.length === 0).length;
-  const risk = active.filter((item) => item.sla !== "Dentro").length;
-  const completed = events.filter((item) => item.stage === "Concluído").length;
-  const slaPct = active.length ? Math.round(active.filter((item) => item.sla === "Dentro").length / active.length * 100) : 100;
-  const weekly = [42, 58, 38, 70, 84, 61, 76];
-  const tasks = [
-    { label: "Validar documentos recebidos", count: 12, action: "Validar documentos pendentes" },
-    { label: "Cobrar documentação incompleta", count: missingDocs, action: "Cobrar documentos pendentes agora" },
-    { label: "Revisar SLAs em risco", count: risk, action: "Revisar SLAs críticos" },
-    { label: "Distribuir vistorias na rede", count: 6, action: "Distribuir vistorias aos prestadores" },
-  ];
-  const todayRows = active.slice(0, 5);
-
-  return (
-    <div className="dashboard-board">
-      <article className="glass-card focus-card interactive-card" onClick={() => onOpenEvent(focus)}>
-        <div className="card-topline">
-          <span className="card-label">EVENTO EM FOCO</span>
-          <button className="mini-round" aria-label="Abrir"><ArrowDownRight /></button>
-        </div>
-        <div className="focus-visual"><VehicleIllustration /></div>
-        <div className="focus-copy">
-          <div className="focus-badge"><span className={`sla-dot ${focus.sla.toLowerCase()}`} />{focus.sla === "Atrasado" ? "SLA atrasado" : `${focus.sla} do SLA`}</div>
-          <h3>{focus.member}</h3>
-          <p>{focus.vehicle} · {focus.plate}</p>
-          <div className="focus-bottom"><span>{focus.id}</span><b>{focus.stage}</b><strong>{money(focus.value)}</strong></div>
-        </div>
-      </article>
-
-      <article className="glass-card progress-card">
-        <CardHeading label="RITMO DA OPERAÇÃO" title="Progresso semanal" action={<button className="mini-round"><ArrowDownRight /></button>} />
-        <div className="progress-total"><strong>61,4</strong><span>h de trabalho poupado<br />nesta semana</span></div>
-        <div className="week-bars">
-          {weekly.map((value, index) => <div key={index} className="week-column"><div className="week-track"><i className={index === 4 ? "highlight" : ""} style={{ height: `${value}%` }} />{index === 4 && <em>12,8h</em>}</div><small>{["S", "T", "Q", "Q", "S", "S", "D"][index]}</small></div>)}
-        </div>
-      </article>
-
-      <article className="glass-card sla-card">
-        <CardHeading label="TEMPO DE RESPOSTA" title="SLA em tempo real" action={<button className="mini-round"><ArrowDownRight /></button>} />
-        <div className="sla-ring" style={{ "--sla": `${slaPct * 3.6}deg` } as CSSProperties}>
-          <div><strong>{slaPct}%</strong><span>no prazo</span></div>
-        </div>
-        <div className="sla-actions"><button onClick={() => onAgent("Revisar SLAs críticos")}><Command />Revisar riscos</button><span>{risk} precisam de atenção</span></div>
-      </article>
-
-      <article className="glass-card automation-card">
-        <CardHeading label="FLUXO AUTOMÁTICO" title="Etapas em movimento" action={<span className="percent-badge">{Math.round((completed / events.length) * 100)}%</span>} />
-        <div className="pipeline-mini-labels"><span>ENTRADA</span><span>EXECUÇÃO</span><span>SAÍDA</span></div>
-        <div className="pipeline-mini"><i className="yellow" style={{ flex: 30 }} /><i className="dark" style={{ flex: 52 }} /><i className="muted" style={{ flex: 18 }} /></div>
-        <div className="automation-dark">
-          <div className="automation-dark-head"><span>Próximas ações</span><strong>4/7</strong></div>
-          {[
-            ["Cobrança documental", `${missingDocs} pendências`, true],
-            ["Distribuição de vistorias", "6 eventos", true],
-            ["Revisão de aprovação", "3 eventos", false],
-            ["Atualizar associados", "sincronização", false],
-          ].map(([label, meta, done]) => <button key={String(label)} className="automation-task" onClick={() => onAgent(String(label))}><span className={done ? "task-icon done" : "task-icon"}>{done ? <Check /> : <Link2 />}</span><div><b>{label}</b><small>{meta}</small></div><i className={done ? "task-state done" : "task-state"} /></button>)}
-        </div>
-      </article>
-
-      <article className="glass-card work-card">
-        <CardHeading label="TRABALHO OPERACIONAL, SIMPLIFICADO" title="O que normalmente daria trabalho hoje" action={<button className="text-button" onClick={onPipeline}>Ver operação <ArrowRight /></button>} />
-        <div className="work-layout">
-          <div className="work-timeline">
-            <div className="timeline-head"><span>Hoje</span><strong>28 de agosto</strong><button><ChevronDown /></button></div>
-            <div className="time-grid">
-              {todayRows.map((item, index) => <button key={item.id} className={`timeline-event event-${index + 1}`} onClick={() => onOpenEvent(item)}><span>{item.updated.replace("há ", "")}</span><div><b>{item.member}</b><small>{item.stage} · {item.id}</small></div><OwnerStack owner={item.owner} /><i className={`sla-dot ${item.sla.toLowerCase()}`} /></button>)}
-            </div>
-          </div>
-          <div className="work-queue">
-            <div className="queue-head"><div><span>ROTINAS DE HOJE</span><strong>Resolver sem sair do painel</strong></div><button className="mini-round"><ListFilter /></button></div>
-            {tasks.map((task) => <div className="work-action" key={task.label}><div className="work-action-icon"><FolderCheck /></div><div><b>{task.label}</b><small>{task.count} item(ns) aguardando</small></div><button onClick={() => onAgent(task.action)}>Resolver <ArrowRight /></button></div>)}
-          </div>
-        </div>
-      </article>
-
-      <article className="glass-card quick-card">
-        <CardHeading label="AÇÕES RÁPIDAS" title="Comece em um clique" action={<span className="live-chip"><i />AO VIVO</span>} />
-        <div className="quick-list">
-          <QuickAction icon={<UserPlus />} title="Cadastrar associado" meta="Base atualiza na hora" onClick={onAssociate} />
-          <QuickAction icon={<Plus />} title="Abrir novo evento" meta="Entra direto na esteira" onClick={onEvent} />
-          <QuickAction icon={<FileCheck2 />} title="Cobrar documentos" meta={`${missingDocs} pendências`} onClick={() => onAgent("Cobrar documentos pendentes agora")} />
-          <QuickAction icon={<Activity />} title="Gerar relatório" meta="Resumo operacional" onClick={() => onAgent("Gerar relatório diário da operação")} />
-        </div>
-      </article>
-
-      <article className="glass-card agent-preview-card">
-        <div className="agent-preview-head"><div className="command-mark"><Command /></div><div><span>AGENTE IA</span><h3>Peça. Ele executa.</h3></div><i className="live-dot" /></div>
-        <p>Não é um chat decorativo. O agente usa o contexto do painel para consultar, atualizar e disparar rotinas.</p>
-        <div className="agent-preview-example"><span>Você</span><p>“Mova o EV-2841 para Vistoria e atualize a fila.”</p></div>
-        <div className="agent-preview-result"><CheckCircle2 /><div><b>Ação concluída</b><small>Esteira e quantitativos sincronizados.</small></div></div>
-        <button className="agent-preview-button" onClick={() => onAgent()}>Abrir agente <ArrowRight /></button>
-      </article>
-    </div>
-  );
-}
-
-function QuickAction({ icon, title, meta, onClick }: { icon: ReactNode; title: string; meta: string; onClick: () => void }) {
-  return <button className="quick-action" onClick={onClick}><span>{icon}</span><div><b>{title}</b><small>{meta}</small></div><ArrowRight /></button>;
-}
-
-function PipelineView({ events, allEvents, stageFilter, onStageFilter, onOpen, onNew }: {
-  events: EventItem[];
-  allEvents: EventItem[];
-  stageFilter: Stage | "Todos";
-  onStageFilter: (stage: Stage | "Todos") => void;
-  onOpen: (item: EventItem) => void;
-  onNew: () => void;
-}) {
-  const activeTotal = allEvents.filter((item) => item.stage !== "Concluído").length;
-  return (
-    <div className="page-stack">
-      <section className="stage-strip-wrap">
-        <div className="section-heading-inline"><div><span className="card-label">VISÃO DE VOLUME</span><h2>Quantitativo por etapa</h2></div><div className="section-actions"><button className="button button-ghost"><Filter />Filtros</button><button className="button button-dark" onClick={onNew}><Plus />Novo evento</button></div></div>
-        <div className="stage-strip">
-          <button className={`stage-count-card total ${stageFilter === "Todos" ? "selected" : ""}`} onClick={() => onStageFilter("Todos")}><span>ATIVOS</span><strong>{activeTotal}</strong><small>fila completa</small><i /></button>
-          {stages.map((stage, index) => {
-            const stageItems = allEvents.filter((item) => item.stage === stage);
-            const attention = stageItems.filter((item) => item.sla !== "Dentro").length;
-            return <button className={`stage-count-card ${stageFilter === stage ? "selected" : ""}`} key={stage} onClick={() => onStageFilter(stage)}><span>{String(index + 1).padStart(2, "0")} · {stage.toUpperCase()}</span><strong>{stageItems.length}</strong><small>{attention ? `${attention} precisam de atenção` : "fluxo dentro do prazo"}</small><i style={{ width: `${Math.max(18, Math.min(100, stageItems.length * 16))}%` }} /></button>;
-          })}
         </div>
       </section>
 
-      <article className="glass-card data-card pipeline-table-card">
-        <CardHeading label="FILA OPERACIONAL" title={stageFilter === "Todos" ? "Todos os eventos" : stageFilter} action={<div className="table-tools"><span>{events.length} registros</span><button className="mini-round"><SlidersHorizontal /></button><button className="mini-round"><Download /></button></div>} />
-        <div className="data-table-wrap">
-          <div className="data-table pipeline-table">
-            <div className="data-row data-head"><span>Evento</span><span>Associado / veículo</span><span>Etapa</span><span>SLA</span><span>Responsável</span><span>Atualização</span><span /></div>
-            {events.map((item) => <button className="data-row" key={item.id} onClick={() => onOpen(item)}><span className="mono-id">{item.id}</span><span className="entity-cell"><b>{item.member}</b><small>{item.vehicle} · {item.plate}</small></span><span><StageBadge stage={item.stage} /></span><span><SlaBadge sla={item.sla} /></span><span><Owner owner={item.owner} /></span><span className="muted-cell">{item.updated}</span><span className="row-arrow"><ChevronRight /></span></button>)}
-            {!events.length && <div className="empty-table"><Inbox /><b>Nenhum evento neste filtro</b><span>Selecione outra etapa ou altere sua busca.</span></div>}
+      <section className="stage-section">
+        <div className="section-inline-head">
+          <div><h2 className="section-title">Fluxo operacional</h2><p className="description">Clique em uma etapa para abrir a fila correspondente.</p></div>
+          <button className="text-link" onClick={() => onNavigate("Esteira")}>Ver esteira <Icon name="arrow" size={14}/></button>
+        </div>
+        <StageGrid counts={counts} attentions={attentions} onSelect={onStage}/>
+      </section>
+
+      <section className="bento-grid">
+        <article className="panel queue-card">
+          <PanelHeader title="Fila prioritária" description="Eventos com risco ou atraso ordenados para ação." action={<button className="icon-button icon-button-plain" aria-label="Abrir esteira" onClick={() => onNavigate("Esteira")}><Icon name="arrow" size={16}/></button>}/>
+          <div className="priority-table">
+            {priority.map((event) => (
+              <button key={event.id} className="priority-row" onClick={() => onEvent(event)}>
+                <span className="priority-id">{event.id}</span>
+                <span className="priority-main"><strong>{event.associate}</strong><small>{event.vehicle} · {event.plate}</small></span>
+                <span className="priority-stage">{stageMeta.find((stage) => stage.key === event.stage)?.label}</span>
+                <StatusChip type={event.sla === "Atrasado" ? "danger" : "warning"}>{event.sla}</StatusChip>
+                <Icon name="chevron" size={14}/>
+              </button>
+            ))}
+          </div>
+        </article>
+
+        <article className="panel workload-card">
+          <PanelHeader title="Carga da operação" description="Distribuição dos eventos ativos."/>
+          <div className="workload-visual">
+            <div className="donut" style={{ "--progress": "74%" } as React.CSSProperties}>
+              <div><strong>74%</strong><span>capacidade</span></div>
+            </div>
+            <div className="workload-list">
+              <div><span><i className="dot dot-dark"/>Nina</span><strong>12</strong></div>
+              <div><span><i className="dot dot-yellow"/>Larissa</span><strong>9</strong></div>
+              <div><span><i className="dot dot-soft"/>André</span><strong>7</strong></div>
+            </div>
+          </div>
+        </article>
+
+        <article className="panel routines-card">
+          <PanelHeader title="Ações de um clique" description="Rotinas que normalmente exigem várias etapas."/>
+          <div className="quick-actions">
+            {routines.slice(0, 4).map((routine) => (
+              <button key={routine.title} className="quick-action" onClick={() => onRoutine(routine.action)}>
+                <span className="quick-icon"><Icon name={routine.icon} size={17}/></span>
+                <span><strong>{routine.title}</strong><small>{routine.description}</small></span>
+                <Icon name="arrow" size={14}/>
+              </button>
+            ))}
+          </div>
+        </article>
+
+        <article className="assistant-card">
+          <div className="assistant-card-top">
+            <span className="assistant-mark"><Icon name="command" size={19}/></span>
+            <StatusChip type="success">Operação conectada</StatusChip>
+          </div>
+          <div className="assistant-card-copy">
+            <span className="eyebrow eyebrow-light">COMANDO DIRETO</span>
+            <h2 className="section-title section-title-light">Resolva sem trocar de tela.</h2>
+            <p className="description description-light">Peça para consultar, mover, cobrar, revisar ou gerar um resumo da operação.</p>
+          </div>
+          <button className="button button-yellow" onClick={onAssistant}><Icon name="message" size={15}/>Abrir agente</button>
+        </article>
+
+        <article className="panel live-card">
+          <PanelHeader title="Atividade recente" description="Atualizações registradas na operação."/>
+          <div className="activity-list">
+            <div><span className="activity-icon"><Icon name="check" size={14}/></span><span><strong>EV-2847 enviado para vistoria</strong><small>André · há 8 min</small></span></div>
+            <div><span className="activity-icon"><Icon name="file" size={14}/></span><span><strong>Documento recebido em EV-2836</strong><small>Larissa · há 14 min</small></span></div>
+            <div><span className="activity-icon"><Icon name="users" size={14}/></span><span><strong>Cadastro de Marina atualizado</strong><small>Base operacional · há 21 min</small></span></div>
+          </div>
+        </article>
+      </section>
+    </div>
+  );
+}
+
+function StageGrid({ counts, attentions, onSelect, selected }: { counts: Record<Stage, number>; attentions: Record<Stage, number>; onSelect: (stage: Stage) => void; selected?: Stage | "Todos" }) {
+  return (
+    <div className="stage-grid">
+      {stageMeta.map((stage) => (
+        <button key={stage.key} className={`stage-card ${selected === stage.key ? "is-selected" : ""}`} onClick={() => onSelect(stage.key)}>
+          <div className="stage-card-head"><span className="card-title">{stage.label}</span>{attentions[stage.key] > 0 ? <span className="attention-pill">{attentions[stage.key]}</span> : <Icon name="check" size={14}/>}</div>
+          <strong className="stage-count">{counts[stage.key]}</strong>
+          <div className="stage-card-foot"><span className="caption">{stage.helper}</span><Icon name="arrow" size={14}/></div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function PipelineView({ counts, attentions, selectedStage, onSelectStage, events, query, onQuery, onEvent, onReset }: {
+  counts: Record<Stage, number>;
+  attentions: Record<Stage, number>;
+  selectedStage: Stage | "Todos";
+  onSelectStage: (stage: Stage | "Todos") => void;
+  events: EventItem[];
+  query: string;
+  onQuery: (value: string) => void;
+  onEvent: (event: EventItem) => void;
+  onReset: () => void;
+}) {
+  return (
+    <div>
+      <section className="stage-section stage-section-large">
+        <div className="section-inline-head">
+          <div><h2 className="section-title">Volume por etapa</h2><p className="description">Os cartões continuam legíveis mesmo quando a fila cresce.</p></div>
+          {selectedStage !== "Todos" ? <button className="text-link" onClick={onReset}>Limpar filtro <Icon name="close" size={14}/></button> : null}
+        </div>
+        <StageGrid counts={counts} attentions={attentions} onSelect={onSelectStage} selected={selectedStage}/>
+      </section>
+
+      <section className="panel table-panel">
+        <div className="table-toolbar">
+          <div>
+            <h2 className="section-title">Fila operacional</h2>
+            <p className="description">{selectedStage === "Todos" ? "Todos os eventos" : stageMeta.find((stage) => stage.key === selectedStage)?.label} · {events.length} registros</p>
+          </div>
+          <div className="toolbar-actions">
+            <label className="search-field"><Icon name="search" size={15}/><input value={query} onChange={(event) => onQuery(event.target.value)} placeholder="Buscar evento, placa ou associado"/></label>
+            <button className="icon-button" aria-label="Filtros"><Icon name="filter" size={16}/></button>
           </div>
         </div>
-      </article>
+        <EventTable events={events} onEvent={onEvent}/>
+      </section>
+    </div>
+  );
+}
+
+function EventTable({ events, onEvent }: { events: EventItem[]; onEvent: (event: EventItem) => void }) {
+  return (
+    <div className="table-wrap">
+      <table className="data-table">
+        <thead><tr><th>Evento</th><th>Associado</th><th>Veículo</th><th>Etapa</th><th>SLA</th><th>Responsável</th><th>Atualização</th><th></th></tr></thead>
+        <tbody>
+          {events.map((event) => (
+            <tr key={event.id} onClick={() => onEvent(event)}>
+              <td data-label="Evento"><strong>{event.id}</strong></td>
+              <td data-label="Associado"><strong>{event.associate}</strong><small>{event.city}</small></td>
+              <td data-label="Veículo"><strong>{event.vehicle}</strong><small>{event.plate}</small></td>
+              <td data-label="Etapa"><span className="plain-chip">{stageMeta.find((stage) => stage.key === event.stage)?.label}</span></td>
+              <td data-label="SLA"><StatusChip type={event.sla === "Atrasado" ? "danger" : event.sla === "Risco" ? "warning" : "success"}>{event.sla}</StatusChip></td>
+              <td data-label="Responsável">{event.owner}</td>
+              <td data-label="Atualização"><span className="caption">{event.updated}</span></td>
+              <td><button className="icon-button icon-button-plain" aria-label={`Abrir ${event.id}`}><Icon name="chevron" size={15}/></button></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {events.length === 0 ? <div className="empty-state"><Icon name="search" size={22}/><h3 className="card-title">Nenhum evento encontrado</h3><p className="description">Ajuste o filtro ou a busca para continuar.</p></div> : null}
     </div>
   );
 }
 
 function AssociatesView({ associates, onNew }: { associates: AssociateItem[]; onNew: () => void }) {
-  const active = associates.filter((item) => item.status === "Ativo").length;
-  const pending = associates.filter((item) => item.status === "Pendente").length;
-  return <div className="page-stack">
-    <div className="compact-metrics">
-      <CompactMetric label="Base total" value={String(associates.length + 1231)} meta="associados" />
-      <CompactMetric label="Ativos" value={String(active + 1190)} meta="cadastros regulares" />
-      <CompactMetric label="Pendências" value={String(pending + 12)} meta="requerem revisão" tone="yellow" />
-      <CompactMetric label="Atualizados hoje" value="38" meta="sincronizações" />
-    </div>
-    <article className="glass-card data-card">
-      <CardHeading label="BASE DE ASSOCIADOS" title="Cadastro e relacionamento" action={<button className="button button-dark" onClick={onNew}><UserPlus />Novo associado</button>} />
-      <div className="data-table-wrap">
-        <div className="data-table associates-table">
-          <div className="data-row data-head"><span>Associado</span><span>Contato</span><span>Veículo</span><span>Localidade</span><span>Status</span><span>Atualização</span><span /></div>
-          {associates.map((item) => <div className={`data-row ${item.live ? "live-row" : ""}`} key={item.id}><span className="entity-cell"><b>{item.name}</b><small>{item.id} · {item.cpf}</small></span><span className="entity-cell"><b>{item.phone}</b><small>{item.email || "sem e-mail"}</small></span><span className="entity-cell"><b>{item.vehicle}</b><small>{item.plate}</small></span><span>{item.city}</span><span><AssociateBadge status={item.status} /></span><span className="muted-cell">{item.updated}{item.live && <em>AGORA</em>}</span><span className="row-arrow"><MoreHorizontal /></span></div>)}
+  return (
+    <div>
+      <section className="summary-strip">
+        <div><span className="label">BASE TOTAL</span><strong>{associates.length}</strong><small>registros disponíveis</small></div>
+        <div><span className="label">ATIVOS</span><strong>{associates.filter((item) => item.status === "Ativo").length}</strong><small>cadastros regulares</small></div>
+        <div><span className="label">PENDENTES</span><strong>{associates.filter((item) => item.status === "Pendente").length}</strong><small>precisam de revisão</small></div>
+      </section>
+      <section className="panel table-panel">
+        <div className="table-toolbar">
+          <div><h2 className="section-title">Base de associados</h2><p className="description">Novos registros aparecem aqui assim que são salvos.</p></div>
+          <button className="button button-dark" onClick={onNew}><Icon name="userPlus" size={15}/>Cadastrar associado</button>
         </div>
-      </div>
-    </article>
-  </div>;
+        <div className="associate-grid">
+          {associates.map((item) => (
+            <article className="associate-card" key={item.id}>
+              <div className="associate-card-head"><span className="associate-avatar">{item.name.split(" ").slice(0,2).map((word) => word[0]).join("")}</span><StatusChip type={item.status === "Ativo" ? "success" : item.status === "Pendente" ? "warning" : "neutral"}>{item.status}</StatusChip></div>
+              <div><h3 className="card-title">{item.name}</h3><p className="description">{item.id} · {item.cpf}</p></div>
+              <div className="associate-meta">
+                <span><Icon name="car" size={14}/><span><strong>{item.vehicle}</strong><small>{item.plate}</small></span></span>
+                <span><Icon name="pin" size={14}/><span><strong>{item.city}</strong><small>{item.updated}</small></span></span>
+              </div>
+              <div className="associate-card-foot"><span className="caption">{item.phone}</span><button className="icon-button icon-button-plain" aria-label="Abrir cadastro"><Icon name="arrow" size={15}/></button></div>
+            </article>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
 }
 
 function ProvidersView() {
-  return <div className="page-stack">
-    <div className="provider-overview">
-      <article className="network-map-card glass-card">
-        <div className="network-copy"><span className="card-label">REDE CREDENCIADA</span><h2>Capacidade disponível, sem planilha.</h2><p>Escolha prestadores olhando simultaneamente SLA, ocupação e localização.</p><div className="network-kpis"><div><strong>42</strong><span>prestadores ativos</span></div><div><strong>8,4h</strong><span>tempo médio de aceite</span></div><div><strong>4,8</strong><span>avaliação média</span></div></div></div>
-        <NetworkGraphic />
-      </article>
-      <article className="glass-card capacity-card"><CardHeading label="CAPACIDADE AGORA" title="Disponibilidade" action={<Gauge />} /><div className="capacity-ring"><div><strong>68%</strong><span>rede disponível</span></div></div><p>12 prestadores conseguem receber novos eventos ainda hoje.</p><button className="button button-dark">Distribuir eventos <ArrowRight /></button></article>
-    </div>
-    <article className="glass-card data-card"><CardHeading label="PRESTADORES" title="Rede operacional" action={<button className="button button-ghost"><Filter />Filtrar rede</button>} /><div className="provider-list">{providers.map((provider) => <div className="provider-row" key={provider.name}><span className="provider-monogram">{provider.name.split(" ").map((piece) => piece[0]).slice(0, 2).join("")}</span><div className="entity-cell"><b>{provider.name}</b><small>{provider.category} · {provider.city}</small></div><div className="provider-data"><span>NOTA</span><b>{provider.rating.toFixed(1)}</b></div><div className="provider-data"><span>EM ABERTO</span><b>{provider.open}</b></div><div className="provider-data"><span>SLA MÉDIO</span><b>{provider.sla}</b></div><div className="capacity-bar"><span style={{ width: `${provider.capacity}%` }} /></div><button className="mini-round"><ChevronRight /></button></div>)}</div></article>
-  </div>;
-}
-
-function DocumentsView({ events, onOpen, onAgent }: { events: EventItem[]; onOpen: (item: EventItem) => void; onAgent: (seed?: string) => void }) {
-  const missing = events.filter((item) => item.docs.length === 0);
-  const oneDoc = events.filter((item) => item.docs.length === 1);
-  const received = events.reduce((sum, item) => sum + item.docs.length, 0);
-  return <div className="page-stack">
-    <div className="compact-metrics">
-      <CompactMetric label="Arquivos recebidos" value={String(received + 184)} meta="últimos 30 dias" />
-      <CompactMetric label="Pendências" value={String(missing.length)} meta="sem documento" tone="yellow" />
-      <CompactMetric label="Validação" value={String(oneDoc.length + 3)} meta="aguardando conferência" />
-      <CompactMetric label="Conformidade" value="96%" meta="documentos aprovados" />
-    </div>
-    <article className="glass-card document-control-card">
-      <div className="document-control-copy"><span className="card-label">COBRANÇA INTELIGENTE</span><h2>Não procure quem está devendo documento.</h2><p>O painel já identifica a pendência, organiza por prioridade e pode disparar a cobrança para você.</p><button className="button button-dark" onClick={() => onAgent("Cobrar documentos pendentes agora")}><Command />Cobrar pendências com IA</button></div>
-      <div className="document-wave"><div className="wave-row"><span>Identificar</span><i className="done"><Check /></i></div><div className="wave-line" /><div className="wave-row"><span>Priorizar</span><i className="done"><Check /></i></div><div className="wave-line" /><div className="wave-row"><span>Cobrar</span><i><Send /></i></div><div className="wave-line" /><div className="wave-row"><span>Confirmar</span><i><FileCheck2 /></i></div></div>
-    </article>
-    <article className="glass-card data-card"><CardHeading label="PENDÊNCIAS" title="Documentação por evento" action={<span className="live-chip"><i />SINCRONIZADO</span>} /><div className="data-table document-table">{events.filter((item) => item.docs.length < 2).map((item) => <button className="data-row" onClick={() => onOpen(item)} key={item.id}><span className="file-round"><FileText /></span><span className="entity-cell"><b>{item.member}</b><small>{item.id} · {item.vehicle}</small></span><span><b>{item.docs.length ? item.docs[0] : "Nenhum arquivo"}</b><small>{item.docs.length ? "1 arquivo recebido" : "documentação pendente"}</small></span><span><SlaBadge sla={item.docs.length ? "Risco" : "Atrasado"} /></span><span className="muted-cell">{item.updated}</span><span className="row-arrow"><ChevronRight /></span></button>)}</div></article>
-  </div>;
-}
-
-function AutomationsView({ notify, onAgent }: { notify: (message: string) => void; onAgent: (seed?: string) => void }) {
-  const [running, setRunning] = useState<string | null>(null);
-  const routines = [
-    { id: "DOC-01", title: "Cobrança de documentos", description: "Identifica pendências e dispara contato com o associado.", frequency: "A cada 30 min", executions: "184 hoje", icon: <FileCheck2 /> },
-    { id: "SLA-02", title: "Vigilância de SLA", description: "Recalcula risco e prioriza eventos antes do vencimento.", frequency: "Em tempo real", executions: "2.418 hoje", icon: <TimerReset /> },
-    { id: "NET-03", title: "Distribuição de prestadores", description: "Cruza capacidade, região e especialidade da rede.", frequency: "Sob demanda", executions: "38 hoje", icon: <Network /> },
-    { id: "REP-04", title: "Resumo executivo", description: "Consolida operação, desvios e próximos movimentos.", frequency: "Diariamente 18h", executions: "1 hoje", icon: <Activity /> },
-    { id: "CAD-05", title: "Sincronização cadastral", description: "Mantém associado, evento e documentos consistentes.", frequency: "A cada alteração", executions: "327 hoje", icon: <RefreshCw /> },
-  ];
-  async function run(title: string) {
-    setRunning(title);
-    await new Promise((resolve) => setTimeout(resolve, 620));
-    setRunning(null);
-    notify(`${title} executada com sucesso.`);
-  }
-  return <div className="page-stack"><article className="automation-hero glass-card"><div><span className="card-label">AUTOMAÇÃO OPERACIONAL</span><h2>O trabalho continua.<br />A repetição não.</h2><p>Rotinas previsíveis deixam de depender de alguém lembrar, conferir e executar manualmente.</p><button className="button button-dark" onClick={() => onAgent("Quais rotinas você consegue executar agora?")}><Command />Pedir ao agente</button></div><AutomationGraphic /></article><article className="glass-card data-card"><CardHeading label="ROTINAS ATIVAS" title="Execução e controle" action={<span className="live-chip"><i />5 ATIVAS</span>} /><div className="routine-list">{routines.map((routine) => <div className="routine-row" key={routine.id}><span className="routine-icon">{routine.icon}</span><div className="entity-cell"><b>{routine.title}</b><small>{routine.description}</small></div><div className="routine-data"><span>FREQUÊNCIA</span><b>{routine.frequency}</b></div><div className="routine-data"><span>EXECUÇÕES</span><b>{routine.executions}</b></div><span className="routine-status"><i />Ativa</span><button className="button button-ghost" disabled={running === routine.title} onClick={() => void run(routine.title)}>{running === routine.title ? <RefreshCw className="spin" /> : <Activity />}{running === routine.title ? "Executando" : "Executar"}</button></div>)}</div></article></div>;
-}
-
-function AgentWorkspace({ events, associates, initialCommand, onConsume, onSetStage, onNewAssociate, onNewEvent, notify }: {
-  events: EventItem[];
-  associates: AssociateItem[];
-  initialCommand?: string;
-  onConsume: () => void;
-  onSetStage: (id: string, stage: Stage) => boolean;
-  onNewAssociate: () => void;
-  onNewEvent: () => void;
-  notify: (message: string) => void;
-}) {
-  return <AgentConsole events={events} associates={associates} initialCommand={initialCommand} onConsume={onConsume} onSetStage={onSetStage} onNewAssociate={onNewAssociate} onNewEvent={onNewEvent} notify={notify} full />;
-}
-
-function AgentDrawer({ events, associates, initialCommand, onClose, onSetStage, onNewAssociate, onNewEvent, onFull, notify }: {
-  events: EventItem[];
-  associates: AssociateItem[];
-  initialCommand?: string;
-  onClose: () => void;
-  onSetStage: (id: string, stage: Stage) => boolean;
-  onNewAssociate: () => void;
-  onNewEvent: () => void;
-  onFull: () => void;
-  notify: (message: string) => void;
-}) {
-  return <div className="drawer-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><aside className="agent-drawer"><div className="drawer-top"><div><span className="card-label">AGENTE IA</span><h2>Operação por comando</h2></div><div><button className="mini-round" onClick={onFull}><ArrowDownRight /></button><button className="mini-round" onClick={onClose}><X /></button></div></div><AgentConsole events={events} associates={associates} initialCommand={initialCommand} onSetStage={onSetStage} onNewAssociate={onNewAssociate} onNewEvent={onNewEvent} notify={notify} /></aside></div>;
-}
-
-function AgentConsole({ events, associates, initialCommand, onConsume, onSetStage, onNewAssociate, onNewEvent, notify, full = false }: {
-  events: EventItem[];
-  associates: AssociateItem[];
-  initialCommand?: string;
-  onConsume?: () => void;
-  onSetStage: (id: string, stage: Stage) => boolean;
-  onNewAssociate: () => void;
-  onNewEvent: () => void;
-  notify: (message: string) => void;
-  full?: boolean;
-}) {
-  const [input, setInput] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [messages, setMessages] = useState<AgentMessage[]>([
-    { id: uid(), role: "agent", text: "Estou conectado à operação. Posso consultar a fila, mover eventos, revisar SLA, cobrar documentos, abrir cadastros e gerar resumos sem você trocar de tela.", meta: "Contexto operacional carregado" },
-  ]);
-  const [executions, setExecutions] = useState(["Contexto operacional sincronizado", "Filas e SLAs carregados"]);
-  const endRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, busy]);
-  useEffect(() => {
-    if (initialCommand) {
-      void execute(initialCommand);
-      onConsume?.();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialCommand]);
-
-  async function execute(raw: string) {
-    const command = raw.trim();
-    if (!command || busy) return;
-    setInput("");
-    setMessages((value) => [...value, { id: uid(), role: "user", text: command }]);
-    setBusy(true);
-    await new Promise((resolve) => setTimeout(resolve, 420));
-
-    const lower = command.toLowerCase();
-    let response = "Analisei o pedido. Posso executar isso pela operação ou detalhar o que precisa acontecer antes.";
-    let meta = "Consulta concluída";
-
-    const eventMatch = command.match(/EV-?\d+/i);
-    const stage = stages.find((item) => lower.includes(item.toLowerCase()));
-    if (eventMatch && stage) {
-      const id = eventMatch[0].replace(/EV(?!-)/i, "EV-").toUpperCase();
-      const ok = onSetStage(id, stage);
-      response = ok ? `${id} foi movido para ${stage}. A etapa, o contador da esteira e o registro de atualização já refletem a mudança.` : `Não encontrei ${id} na base atual. Posso procurar por associado ou placa.`;
-      meta = ok ? "Alteração executada agora" : "Evento não localizado";
-      if (ok) setExecutions((value) => [`${id} → ${stage}`, ...value].slice(0, 6));
-    } else if (lower.includes("cadastrar") && lower.includes("associ")) {
-      response = "Abri o fluxo de cadastro. Assim que você salvar, o novo associado aparece imediatamente na base e fica disponível para a operação.";
-      meta = "Cadastro iniciado";
-      setTimeout(onNewAssociate, 280);
-    } else if ((lower.includes("novo") || lower.includes("abrir") || lower.includes("criar")) && lower.includes("evento")) {
-      response = "Vou abrir o novo evento. Ao salvar, ele entra em Entrada e os quantitativos da esteira são recalculados na hora.";
-      meta = "Abertura iniciada";
-      setTimeout(onNewEvent, 280);
-    } else if (lower.includes("document")) {
-      const pending = events.filter((item) => item.docs.length === 0);
-      response = `Encontrei ${pending.length} evento(s) sem documentação. A cobrança foi organizada por prioridade e a rotina de contato foi preparada para execução.`;
-      meta = `Rotina preparada · ${pending.length} pendências`;
-      setExecutions((value) => [`Cobrança documental · ${pending.length} itens`, ...value].slice(0, 6));
-      notify("Cobrança documental preparada pelo agente.");
-    } else if (lower.includes("sla") || lower.includes("risco") || lower.includes("atras")) {
-      const atRisk = events.filter((item) => item.stage !== "Concluído" && item.sla !== "Dentro");
-      response = `Revisão concluída: ${atRisk.length} evento(s) exigem atenção. ${atRisk.filter((item) => item.sla === "Atrasado").length} já estão atrasados. Priorizei a fila considerando SLA e criticidade.`;
-      meta = `SLA revisado · ${atRisk.length} itens`;
-      setExecutions((value) => [`Revisão de SLA · ${atRisk.length} itens`, ...value].slice(0, 6));
-    } else if (lower.includes("relat") || lower.includes("resum")) {
-      const active = events.filter((item) => item.stage !== "Concluído");
-      const managed = active.reduce((sum, item) => sum + item.value, 0);
-      response = `Resumo pronto: ${active.length} eventos ativos, ${events.length - active.length} concluídos, ${money(managed)} sob gestão, ${associates.length + 1231} associados na base consolidada e ${active.filter((item) => item.sla !== "Dentro").length} SLAs para revisão.`;
-      meta = "Resumo operacional gerado agora";
-      setExecutions((value) => ["Resumo executivo gerado", ...value].slice(0, 6));
-    } else if (lower.includes("prestador") || lower.includes("vistoria") || lower.includes("distrib")) {
-      response = "Cruzei a fila de vistoria com disponibilidade, região e SLA da rede. Existem 6 eventos aptos para distribuição e 12 prestadores com capacidade hoje.";
-      meta = "Distribuição analisada";
-      setExecutions((value) => ["Capacidade da rede analisada", ...value].slice(0, 6));
-    } else if (lower.includes("associ")) {
-      response = `A base consolidada tem ${associates.length + 1231} associados. Os últimos registros estão sincronizados e qualquer novo cadastro entra imediatamente na listagem.`;
-      meta = "Base consultada";
-    }
-
-    setMessages((value) => [...value, { id: uid(), role: "agent", text: response, meta }]);
-    setBusy(false);
-  }
-
-  const prompts = ["Revisar SLAs críticos", "Cobrar documentos pendentes", "Gerar resumo da operação", "Mover EV-2841 para Vistoria"];
-
-  return <div className={`agent-console ${full ? "full" : "compact"}`}>
-    {full && <div className="agent-console-banner"><div><span className="command-mark"><Command /></span><div><span className="card-label">AGENTE OPERACIONAL</span><h2>Converse com a operação.</h2><p>O agente não só responde: ele consulta o contexto e executa ações no painel.</p></div></div><div className="agent-system"><span><i />CONTEXTO</span><b>Sincronizado</b><small>eventos · associados · documentos · rede</small></div></div>}
-    <div className="agent-grid">
-      <section className="agent-chat glass-card">
-        {!full && <div className="agent-chat-head"><div className="command-mark"><Command /></div><div><span className="card-label">AGENTE IA</span><h3>Conectado à operação</h3></div><span className="live-chip"><i />ONLINE</span></div>}
-        <div className="agent-messages">
-          {messages.map((message) => <div className={`agent-message ${message.role}`} key={message.id}>{message.role === "agent" && <span className="message-mark"><Command /></span>}<div><p>{message.text}</p>{message.meta && <small><CheckCircle2 />{message.meta}</small>}</div></div>)}
-          {busy && <div className="agent-thinking"><span /><span /><span /><em>executando</em></div>}
-          <div ref={endRef} />
-        </div>
-        <div className="prompt-row">{prompts.map((prompt) => <button key={prompt} onClick={() => void execute(prompt)}>{prompt}</button>)}</div>
-        <form className="agent-input" onSubmit={(event: FormEvent) => { event.preventDefault(); void execute(input); }}><Command /><input value={input} onChange={(event) => setInput(event.target.value)} placeholder="Ex.: mover EV-2841 para Vistoria" /><button disabled={busy || !input.trim()}><Send /></button></form>
+  return (
+    <div>
+      <section className="summary-strip">
+        <div><span className="label">PRESTADORES</span><strong>{providers.length}</strong><small>visíveis no painel</small></div>
+        <div><span className="label">OCUPAÇÃO MÉDIA</span><strong>54%</strong><small>capacidade da rede</small></div>
+        <div><span className="label">MELHOR PRAZO</span><strong>Hoje</strong><small>vistoria disponível</small></div>
       </section>
-      {full && <aside className="agent-context-column"><article className="glass-card agent-action-card"><CardHeading label="AÇÕES DISPONÍVEIS" title="O que posso resolver" action={<Activity />} /><QuickAction icon={<UserPlus />} title="Cadastrar associado" meta="Atualiza a base ao salvar" onClick={onNewAssociate} /><QuickAction icon={<FileCheck2 />} title="Cobrar documentos" meta="Organiza e dispara pendências" onClick={() => void execute("Cobrar documentos pendentes agora")} /><QuickAction icon={<TimerReset />} title="Revisar SLA" meta="Prioriza risco e atraso" onClick={() => void execute("Revisar SLAs críticos")} /><QuickAction icon={<Network />} title="Distribuir rede" meta="Cruza capacidade e região" onClick={() => void execute("Distribuir vistorias aos prestadores")} /></article><article className="glass-card execution-card"><CardHeading label="EXECUÇÕES" title="Atividade do agente" action={<span className="live-chip"><i />LIVE</span>} /><div className="execution-list">{executions.map((item, index) => <div key={`${item}-${index}`}><span><Check /></span><div><b>{item}</b><small>{index === 0 ? "agora" : `${index * 3 + 1} min atrás`}</small></div></div>)}</div></article></aside>}
+      <section className="provider-grid">
+        {providers.map((provider) => (
+          <article className="panel provider-card" key={provider.name}>
+            <div className="provider-head"><span className="provider-icon"><Icon name="building" size={18}/></span><button className="icon-button icon-button-plain" aria-label="Mais opções"><Icon name="more" size={17}/></button></div>
+            <div><h3 className="card-title">{provider.name}</h3><p className="description">{provider.specialty}</p></div>
+            <div className="provider-location"><Icon name="pin" size={14}/><span className="caption">{provider.city}</span></div>
+            <div className="capacity-block"><div><span className="label">CAPACIDADE</span><strong>{provider.load}%</strong></div><div className="progress-track compact"><i style={{ width: `${provider.load}%` }}/></div></div>
+            <div className="provider-stats"><span><small>Prazo</small><strong>{provider.eta}</strong></span><span><small>Nota</small><strong>{provider.score}</strong></span><span><small>Em curso</small><strong>{provider.jobs}</strong></span></div>
+            <button className="button button-light">Ver prestador <Icon name="arrow" size={14}/></button>
+          </article>
+        ))}
+      </section>
     </div>
-  </div>;
+  );
 }
 
-function EventModal({ onClose, onCreate }: { onClose: () => void; onCreate: (form: FormData) => void }) {
-  return <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><form className="modal-card" action={onCreate}><ModalHeader kicker="NOVO EVENTO" title="Abrir atendimento" description="O registro entra em Entrada e atualiza a esteira imediatamente." onClose={onClose} /><div className="form-grid"><Field label="Associado"><input required name="member" placeholder="Nome completo" /></Field><Field label="WhatsApp"><input required name="phone" placeholder="(00) 00000-0000" /></Field><Field label="Veículo"><input required name="vehicle" placeholder="Marca, modelo e ano" /></Field><Field label="Placa"><input required name="plate" placeholder="ABC-1D23" /></Field><Field label="Localidade"><input name="city" defaultValue="Goiânia / GO" /></Field><Field label="Valor estimado"><input name="value" type="number" min="0" placeholder="0" /></Field><Field label="Tipo"><select name="type"><option>Colisão</option><option>Roubo/Furto</option><option>Assistência</option><option>Vidros</option></select></Field><Field label="Responsável"><select name="owner"><option>Camila</option><option>Leandro</option><option>André</option></select></Field><Field label="Prioridade"><select name="priority"><option>Normal</option><option>Alta</option></select></Field></div><footer className="modal-footer"><span className="live-note"><i />ATUALIZAÇÃO AO VIVO</span><button type="button" className="button button-ghost" onClick={onClose}>Cancelar</button><button className="button button-dark" type="submit"><Plus />Criar evento</button></footer></form></div>;
+function DocumentsView({ onRoutine }: { onRoutine: (action: string) => void }) {
+  return (
+    <div className="documents-layout">
+      <section className="panel table-panel">
+        <PanelHeader title="Pendências documentais" description="Itens que precisam de validação, cobrança ou conferência." action={<button className="button button-dark" onClick={() => onRoutine("Cobrar documentos pendentes")}><Icon name="send" size={14}/>Cobrar pendências</button>}/>
+        <div className="document-list">
+          {documents.map((doc) => (
+            <div className="document-row" key={`${doc.event}-${doc.item}`}>
+              <span className="document-icon"><Icon name="file" size={17}/></span>
+              <span><strong>{doc.item}</strong><small>{doc.event} · {doc.associate}</small></span>
+              <span className="caption">{doc.age}</span>
+              <StatusChip type={doc.status === "Atrasado" ? "danger" : doc.status === "Pendente" ? "warning" : doc.status === "Recebido" ? "success" : "neutral"}>{doc.status}</StatusChip>
+              <button className="icon-button icon-button-plain" aria-label="Abrir documento"><Icon name="chevron" size={15}/></button>
+            </div>
+          ))}
+        </div>
+      </section>
+      <aside className="panel document-summary">
+        <PanelHeader title="Resumo" description="Situação da documentação hoje."/>
+        <div className="document-kpis">
+          <div><span className="metric-value">12</span><span className="metric-label">Pendências</span><span className="caption">aguardando envio</span></div>
+          <div><span className="metric-value">4</span><span className="metric-label">Em análise</span><span className="caption">na fila interna</span></div>
+          <div><span className="metric-value">86%</span><span className="metric-label">Completude</span><span className="caption">média da base</span></div>
+        </div>
+      </aside>
+    </div>
+  );
 }
 
-function AssociateModal({ onClose, onCreate }: { onClose: () => void; onCreate: (form: FormData) => void }) {
-  return <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><form className="modal-card" action={onCreate}><ModalHeader kicker="NOVO ASSOCIADO" title="Cadastrar associado" description="Salvou, apareceu. O registro entra na base e fica disponível para a operação na hora." onClose={onClose} /><div className="form-grid"><Field label="Nome completo"><input required name="name" placeholder="Nome do associado" /></Field><Field label="CPF"><input name="cpf" placeholder="000.000.000-00" /></Field><Field label="WhatsApp"><input required name="phone" placeholder="(00) 00000-0000" /></Field><Field label="E-mail"><input name="email" type="email" placeholder="nome@email.com" /></Field><Field label="Veículo"><input name="vehicle" placeholder="Marca, modelo e ano" /></Field><Field label="Placa"><input name="plate" placeholder="ABC-1D23" /></Field><Field label="Localidade"><input name="city" defaultValue="Goiânia / GO" /></Field><Field label="Status"><select name="status"><option>Ativo</option><option>Pendente</option><option>Bloqueado</option></select></Field></div><footer className="modal-footer"><span className="live-note"><i />ATUALIZAÇÃO AO VIVO</span><button type="button" className="button button-ghost" onClick={onClose}>Cancelar</button><button className="button button-dark" type="submit"><UserPlus />Cadastrar associado</button></footer></form></div>;
+function RoutinesView({ onRoutine, onAssistant }: { onRoutine: (action: string) => void; onAssistant: () => void }) {
+  return (
+    <div>
+      <section className="routine-intro panel">
+        <div><span className="eyebrow">TRABALHO OPERACIONAL, SIMPLIFICADO</span><h2 className="section-title">O painel executa o trabalho repetitivo sem esconder o controle.</h2><p className="description">Cada rotina deixa claro o que será feito antes da execução.</p></div>
+        <button className="button button-dark" onClick={onAssistant}><Icon name="command" size={15}/>Pedir outra ação</button>
+      </section>
+      <section className="routine-grid">
+        {routines.map((routine) => (
+          <button className={`routine-card ${routine.accent ? "routine-card-accent" : ""}`} key={routine.title} onClick={() => onRoutine(routine.action)}>
+            <span className="routine-icon"><Icon name={routine.icon} size={19}/></span>
+            <span className="routine-copy"><strong className="card-title">{routine.title}</strong><small className="description">{routine.description}</small></span>
+            <span className="routine-arrow"><Icon name="arrow" size={15}/></span>
+          </button>
+        ))}
+      </section>
+    </div>
+  );
 }
 
-function EventDrawer({ item, onClose, onMove, onFiles }: { item: EventItem; onClose: () => void; onMove: (direction: number) => void; onFiles: (files: FileList | null) => void }) {
-  const index = stages.indexOf(item.stage);
-  return <div className="drawer-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}><aside className="event-drawer"><div className="drawer-top"><div><span className="card-label">{item.id}</span><h2>{item.member}</h2><p>{item.vehicle} · {item.plate}</p></div><button className="mini-round" onClick={onClose}><X /></button></div><div className="drawer-summary"><div><span>TIPO</span><b>{item.type}</b></div><div><span>SLA</span><SlaBadge sla={item.sla} /></div><div><span>RESPONSÁVEL</span><b>{item.owner}</b></div><div><span>VALOR</span><b>{money(item.value)}</b></div></div><section className="drawer-section"><CardHeading label="FLUXO" title="Progresso do evento" action={<StageBadge stage={item.stage} />} /><div className="vertical-steps">{stages.map((stage, stageIndex) => <div className={`${stageIndex < index ? "done" : ""} ${stageIndex === index ? "current" : ""}`} key={stage}><i>{stageIndex < index ? <Check /> : stageIndex + 1}</i><span>{stage}</span>{stageIndex === index && <em>etapa atual</em>}</div>)}</div><div className="drawer-actions"><button className="button button-ghost" disabled={index === 0} onClick={() => onMove(-1)}><ArrowLeft />Voltar</button><button className="button button-dark" disabled={index === stages.length - 1} onClick={() => onMove(1)}>Avançar <ArrowRight /></button></div></section><section className="drawer-section"><CardHeading label="DOCUMENTOS" title="Arquivos do evento" action={<label className="button button-ghost upload-button"><Upload />Anexar<input hidden type="file" multiple onChange={(event) => onFiles(event.target.files)} /></label>} /><div className="drawer-files">{item.docs.length ? item.docs.map((doc) => <div key={doc}><span><FileText /></span><div><b>{doc}</b><small>Recebido e vinculado ao evento</small></div><CheckCircle2 /></div>) : <div className="drawer-empty"><Inbox /><b>Nenhum documento</b><span>Use “Anexar” ou peça ao agente para cobrar o associado.</span></div>}</div></section></aside></div>;
+function AssistantView({ messages, input, onInput, onSend, busy, onRoutine, activeCount, riskCount, overdueCount, associates }: {
+  messages: Message[];
+  input: string;
+  onInput: (value: string) => void;
+  onSend: (value: string) => void;
+  busy: boolean;
+  onRoutine: (action: string) => void;
+  activeCount: number;
+  riskCount: number;
+  overdueCount: number;
+  associates: number;
+}) {
+  function submit(event: FormEvent) { event.preventDefault(); onSend(input); }
+  return (
+    <div className="assistant-page">
+      <section className="assistant-hero panel">
+        <div className="assistant-hero-main"><span className="assistant-mark"><Icon name="command" size={20}/></span><div><span className="eyebrow">AGENTE OPERACIONAL</span><h2 className="section-title">Converse com a operação.</h2><p className="description">O agente consulta o contexto e executa ações disponíveis no painel.</p></div></div>
+        <div className="assistant-context"><span className="status-dot"/><div><span className="label">CONTEXTO</span><strong>Sincronizado</strong><small>eventos · associados · documentos · rede</small></div></div>
+      </section>
+
+      <section className="assistant-layout">
+        <article className="panel chat-panel">
+          <div className="chat-topbar"><div><h2 className="section-title">Conversa operacional</h2><p className="description">Comandos objetivos, resultado registrado na mesma sessão.</p></div><StatusChip type="success">Online</StatusChip></div>
+          <div className="chat-messages">
+            {messages.map((message) => (
+              <div className={`chat-message ${message.role}`} key={message.id}>
+                <span className="chat-role">{message.role === "assistant" ? <Icon name="command" size={14}/> : "Você"}</span>
+                <p>{message.text}</p>
+              </div>
+            ))}
+            {busy ? <div className="chat-message assistant"><span className="chat-role"><Icon name="refresh" size={14}/></span><p className="typing">Processando solicitação</p></div> : null}
+          </div>
+          <form className="chat-form" onSubmit={submit}>
+            <div className="chat-input-wrap"><Icon name="message" size={16}/><input value={input} onChange={(event) => onInput(event.target.value)} placeholder="Ex.: mover EV-2848 para Vistoria"/></div>
+            <button className="button button-dark" type="submit" disabled={!input.trim() || busy}><Icon name="send" size={14}/>Enviar</button>
+          </form>
+        </article>
+
+        <aside className="assistant-side">
+          <section className="panel agent-actions-card">
+            <PanelHeader title="O que posso executar" description="Atalhos para rotinas frequentes."/>
+            <div className="agent-actions">
+              {[
+                ["Cadastrar associado", "Abre o cadastro e atualiza a base", "userPlus", "Cadastrar novo associado"],
+                ["Cobrar documentos", "Organiza as pendências para ação", "documentCheck", "Cobrar documentos pendentes"],
+                ["Revisar SLA", "Prioriza risco e atraso", "clock", "Revisar SLAs críticos"],
+                ["Gerar relatório", "Consolida a operação atual", "report", "Gerar relatório operacional"],
+              ].map(([title, detail, icon, action]) => (
+                <button className="agent-action" key={title} onClick={() => onRoutine(action)}>
+                  <span className="agent-action-icon"><Icon name={icon as IconName} size={16}/></span>
+                  <span><strong>{title}</strong><small>{detail}</small></span>
+                  <Icon name="chevron" size={14}/>
+                </button>
+              ))}
+            </div>
+          </section>
+          <section className="panel agent-context-card">
+            <PanelHeader title="Contexto carregado" description="Números usados durante a conversa."/>
+            <div className="agent-context-grid">
+              <div><strong>{activeCount}</strong><span>Eventos ativos</span></div>
+              <div><strong>{riskCount}</strong><span>Em risco</span></div>
+              <div><strong>{overdueCount}</strong><span>Atrasados</span></div>
+              <div><strong>{associates}</strong><span>Associados</span></div>
+            </div>
+          </section>
+        </aside>
+      </section>
+    </div>
+  );
 }
 
-function ModalHeader({ kicker, title, description, onClose }: { kicker: string; title: string; description: string; onClose: () => void }) {
-  return <div className="modal-header"><div><span className="card-label">{kicker}</span><h2>{title}</h2><p>{description}</p></div><button type="button" className="mini-round" onClick={onClose}><X /></button></div>;
-}
-function Field({ label, children }: { label: string; children: ReactNode }) { return <label className="field"><span>{label}</span>{children}</label>; }
-
-function CardHeading({ label, title, action }: { label: string; title: string; action?: ReactNode }) {
-  return <div className="card-heading"><div><span className="card-label">{label}</span><h3>{title}</h3></div>{action}</div>;
-}
-function CompactMetric({ label, value, meta, tone }: { label: string; value: string; meta: string; tone?: "yellow" }) { return <article className={`compact-metric ${tone || ""}`}><span>{label}</span><strong>{value}</strong><small>{meta}</small></article>; }
-function StageBadge({ stage }: { stage: Stage }) { return <span className="stage-badge"><i />{stage}</span>; }
-function SlaBadge({ sla }: { sla: Sla }) { return <span className={`sla-badge ${sla.toLowerCase()}`}><i />{sla}</span>; }
-function AssociateBadge({ status }: { status: AssociateStatus }) { return <span className={`associate-badge ${status.toLowerCase()}`}><i />{status}</span>; }
-function Owner({ owner }: { owner: string }) { return <span className="owner"><i>{owner.slice(0, 1)}</i>{owner}</span>; }
-function OwnerStack({ owner }: { owner: string }) { return <span className="owner-stack"><i>{owner.slice(0, 1)}</i><i>V</i></span>; }
-
-function VeloceMark() {
-  return <svg className="veloce-mark" viewBox="0 0 34 34" fill="none" aria-hidden="true"><rect x="1" y="1" width="32" height="32" rx="10" stroke="currentColor" strokeWidth="1.4"/><path d="M8.5 10.5 15.3 23h3.4l6.8-12.5h-4.2L17 19.1l-4.3-8.6H8.5Z" fill="currentColor"/><path d="M20.4 10.5h5.1l-5.2 9.7h-5.1l5.2-9.7Z" fill="#FFD94A"/></svg>;
-}
-
-function VehicleIllustration() {
-  return <svg viewBox="0 0 420 190" className="vehicle-svg" fill="none" aria-hidden="true"><defs><linearGradient id="carBody" x1="67" y1="59" x2="346" y2="151" gradientUnits="userSpaceOnUse"><stop stopColor="#F2F1EA"/><stop offset="1" stopColor="#B9BAB6"/></linearGradient><linearGradient id="glass" x1="143" y1="62" x2="275" y2="112" gradientUnits="userSpaceOnUse"><stop stopColor="#434542"/><stop offset="1" stopColor="#20211F"/></linearGradient></defs><ellipse cx="211" cy="156" rx="156" ry="17" fill="#20211F" fillOpacity=".12"/><path d="M55 126c5-16 16-27 34-31l42-10 31-34c8-8 17-12 28-12h77c14 0 25 5 33 15l29 34 40 13c13 4 21 13 24 28l2 12H50l5-15Z" fill="url(#carBody)" stroke="#20211F" strokeWidth="2"/><path d="m153 82 25-27c5-6 12-9 21-9h28v38l-74-2Zm82 2V46h26c10 0 18 4 25 12l23 29-74-3Z" fill="url(#glass)"/><path d="M62 110h46M321 103h48M180 93h92" stroke="#20211F" strokeWidth="2" strokeLinecap="round"/><circle cx="118" cy="139" r="25" fill="#242523"/><circle cx="118" cy="139" r="13" fill="#C9CAC5" stroke="#20211F" strokeWidth="2"/><circle cx="315" cy="139" r="25" fill="#242523"/><circle cx="315" cy="139" r="13" fill="#C9CAC5" stroke="#20211F" strokeWidth="2"/><path d="M65 126h31M340 120h35" stroke="#FFD94A" strokeWidth="5" strokeLinecap="round"/><path d="M56 133h34m253 0h31" stroke="#20211F" strokeWidth="2" strokeLinecap="round"/></svg>;
+function EventDrawer({ event, onClose, onMove }: { event: EventItem; onClose: () => void; onMove: (id: string, stage: Stage) => void }) {
+  return (
+    <div className="overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <aside className="drawer">
+        <div className="drawer-head"><div><span className="eyebrow">DETALHE DO EVENTO</span><h2 className="section-title">{event.id}</h2><p className="description">{event.associate} · {event.vehicle}</p></div><button className="icon-button" onClick={onClose} aria-label="Fechar"><Icon name="close" size={17}/></button></div>
+        <div className="drawer-status"><StatusChip type={event.sla === "Atrasado" ? "danger" : event.sla === "Risco" ? "warning" : "success"}>{event.sla}</StatusChip><span className="plain-chip">{stageMeta.find((stage) => stage.key === event.stage)?.label}</span></div>
+        <div className="drawer-grid">
+          <span><small className="label">VEÍCULO</small><strong>{event.vehicle}</strong><small className="caption">{event.plate}</small></span>
+          <span><small className="label">LOCAL</small><strong>{event.city}</strong><small className="caption">{event.updated}</small></span>
+          <span><small className="label">RESPONSÁVEL</small><strong>{event.owner}</strong><small className="caption">Operação</small></span>
+          <span><small className="label">SLA</small><strong>{event.sla}</strong><small className="caption">Situação atual</small></span>
+        </div>
+        <div className="drawer-section"><h3 className="card-title">Mover etapa</h3><div className="stage-options">{stageMeta.map((stage) => <button key={stage.key} className={event.stage === stage.key ? "active" : ""} onClick={() => onMove(event.id, stage.key)}>{stage.label}</button>)}</div></div>
+        <div className="drawer-section"><h3 className="card-title">Linha do tempo</h3><div className="timeline"><div><i/><span><strong>Última atualização</strong><small>{event.updated}</small></span></div><div><i/><span><strong>Etapa atual</strong><small>{stageMeta.find((stage) => stage.key === event.stage)?.label}</small></span></div><div><i/><span><strong>Evento criado</strong><small>Hoje · 08:42</small></span></div></div></div>
+      </aside>
+    </div>
+  );
 }
 
-function NetworkGraphic() {
-  return <svg className="network-graphic" viewBox="0 0 430 250" fill="none" aria-hidden="true"><g stroke="#20211F" strokeOpacity=".2" strokeDasharray="4 6"><path d="M44 161 127 82l92 55 84-86 81 118"/><path d="M83 209 157 149l88 44 72-73"/></g><g fill="#FBFAF4" stroke="#20211F"><circle cx="44" cy="161" r="12"/><circle cx="127" cy="82" r="16"/><circle cx="219" cy="137" r="13"/><circle cx="303" cy="51" r="11"/><circle cx="384" cy="169" r="17"/><circle cx="83" cy="209" r="9"/><circle cx="157" cy="149" r="10"/><circle cx="245" cy="193" r="9"/><circle cx="317" cy="120" r="12"/></g><g fill="#FFD94A" stroke="#20211F"><circle cx="127" cy="82" r="7"/><circle cx="219" cy="137" r="6"/><circle cx="384" cy="169" r="8"/></g><path d="M342 208c0-16 13-29 29-29s29 13 29 29" stroke="#20211F" strokeWidth="1.5"/><path d="m365 205 9-11 10 11" stroke="#20211F" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+function AssociateModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: (data: Omit<AssociateItem, "id" | "updated">) => void }) {
+  const [form, setForm] = useState({ name: "", cpf: "", phone: "", email: "", vehicle: "", plate: "", city: "", status: "Ativo" as AssociateStatus });
+  function submit(event: FormEvent) { event.preventDefault(); if (!form.name.trim() || !form.plate.trim()) return; onSubmit(form); }
+  return (
+    <div className="overlay modal-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <form className="modal" onSubmit={submit}>
+        <div className="modal-head"><div><span className="eyebrow">NOVO CADASTRO</span><h2 className="section-title">Cadastrar associado</h2><p className="description">O registro entra na base assim que você salvar.</p></div><button className="icon-button" type="button" onClick={onClose}><Icon name="close" size={17}/></button></div>
+        <div className="form-grid">
+          <Field label="Nome completo" value={form.name} onChange={(value) => setForm({ ...form, name: value })} required/>
+          <Field label="CPF" value={form.cpf} onChange={(value) => setForm({ ...form, cpf: value })}/>
+          <Field label="WhatsApp" value={form.phone} onChange={(value) => setForm({ ...form, phone: value })}/>
+          <Field label="E-mail" value={form.email} onChange={(value) => setForm({ ...form, email: value })}/>
+          <Field label="Veículo" value={form.vehicle} onChange={(value) => setForm({ ...form, vehicle: value })}/>
+          <Field label="Placa" value={form.plate} onChange={(value) => setForm({ ...form, plate: value.toUpperCase() })} required/>
+          <Field label="Cidade / UF" value={form.city} onChange={(value) => setForm({ ...form, city: value })}/>
+          <label className="field"><span className="label">Status</span><select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as AssociateStatus })}><option>Ativo</option><option>Pendente</option><option>Inativo</option></select></label>
+        </div>
+        <div className="modal-actions"><button className="button button-light" type="button" onClick={onClose}>Cancelar</button><button className="button button-dark" type="submit">Salvar associado</button></div>
+      </form>
+    </div>
+  );
 }
 
-function AutomationGraphic() {
-  return <svg className="automation-graphic" viewBox="0 0 520 250" fill="none" aria-hidden="true"><defs><linearGradient id="autoFade" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#FFD94A"/><stop offset="1" stopColor="#FFE894"/></linearGradient></defs><rect x="72" y="66" width="122" height="58" rx="18" fill="#20211F"/><rect x="207" y="66" width="122" height="58" rx="18" fill="rgba(255,255,255,.55)" stroke="#20211F"/><rect x="342" y="66" width="108" height="58" rx="18" fill="url(#autoFade)" stroke="#20211F"/><path d="M194 95h13M329 95h13" stroke="#20211F" strokeWidth="2" strokeLinecap="round"/><path d="m200 90 7 5-7 5M335 90l7 5-7 5" stroke="#20211F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="102" cy="95" r="11" fill="#FFD94A"/><path d="m96 95 4 4 8-9" stroke="#20211F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="238" cy="95" r="11" stroke="#20211F"/><path d="M238 88v8l5 3" stroke="#20211F" strokeWidth="2" strokeLinecap="round"/><path d="M371 95h17m-8-8 8 8-8 8" stroke="#20211F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M97 151h328" stroke="#20211F" strokeOpacity=".18" strokeDasharray="5 7"/><g fill="#20211F"><circle cx="97" cy="151" r="5"/><circle cx="207" cy="151" r="5"/><circle cx="316" cy="151" r="5"/><circle cx="425" cy="151" r="5"/></g><g fontFamily="sans-serif" fontSize="10" fill="#555650"><text x="78" y="174">IDENTIFICAR</text><text x="187" y="174">PRIORIZAR</text><text x="292" y="174">EXECUTAR</text><text x="401" y="174">REGISTRAR</text></g></svg>;
+function EventModal({ associates, onClose, onSubmit }: { associates: AssociateItem[]; onClose: () => void; onSubmit: (data: Omit<EventItem, "id" | "updated">) => void }) {
+  const [form, setForm] = useState({ associate: associates[0]?.name || "", vehicle: associates[0]?.vehicle || "", plate: associates[0]?.plate || "", city: associates[0]?.city || "", stage: "Entrada" as Stage, sla: "Dentro" as Sla, owner: "Nina" });
+  function pickAssociate(name: string) { const item = associates.find((associate) => associate.name === name); setForm({ ...form, associate: name, vehicle: item?.vehicle || "", plate: item?.plate || "", city: item?.city || "" }); }
+  function submit(event: FormEvent) { event.preventDefault(); if (!form.associate.trim()) return; onSubmit(form); }
+  return (
+    <div className="overlay modal-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <form className="modal" onSubmit={submit}>
+        <div className="modal-head"><div><span className="eyebrow">NOVA OPERAÇÃO</span><h2 className="section-title">Criar evento</h2><p className="description">O evento entra na esteira imediatamente após salvar.</p></div><button className="icon-button" type="button" onClick={onClose}><Icon name="close" size={17}/></button></div>
+        <div className="form-grid">
+          <label className="field field-span-2"><span className="label">Associado</span><select value={form.associate} onChange={(event) => pickAssociate(event.target.value)}>{associates.map((associate) => <option key={associate.id}>{associate.name}</option>)}</select></label>
+          <Field label="Veículo" value={form.vehicle} onChange={(value) => setForm({ ...form, vehicle: value })}/>
+          <Field label="Placa" value={form.plate} onChange={(value) => setForm({ ...form, plate: value.toUpperCase() })}/>
+          <Field label="Cidade / UF" value={form.city} onChange={(value) => setForm({ ...form, city: value })}/>
+          <label className="field"><span className="label">Responsável</span><select value={form.owner} onChange={(event) => setForm({ ...form, owner: event.target.value })}><option>Nina</option><option>Larissa</option><option>André</option></select></label>
+        </div>
+        <div className="modal-actions"><button className="button button-light" type="button" onClick={onClose}>Cancelar</button><button className="button button-dark" type="submit">Criar evento</button></div>
+      </form>
+    </div>
+  );
+}
+
+function Field({ label, value, onChange, required }: { label: string; value: string; onChange: (value: string) => void; required?: boolean }) {
+  return <label className="field"><span className="label">{label}</span><input value={value} onChange={(event) => onChange(event.target.value)} required={required}/></label>;
+}
+
+function SearchDialog({ query, onQuery, results, onClose, inputRef }: { query: string; onQuery: (value: string) => void; results: Array<{ kind: string; title: string; detail: string; icon: IconName; action: () => void }>; onClose: () => void; inputRef: React.RefObject<HTMLInputElement | null> }) {
+  return (
+    <div className="overlay search-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="search-dialog">
+        <div className="search-dialog-input"><Icon name="search" size={18}/><input ref={inputRef} value={query} onChange={(event) => onQuery(event.target.value)} placeholder="Buscar evento, associado ou placa"/><button onClick={onClose}>ESC</button></div>
+        <div className="search-results">
+          {!query ? <div className="search-empty"><Icon name="command" size={20}/><h3 className="card-title">Busca rápida</h3><p className="description">Digite um nome, placa ou identificador.</p></div> : null}
+          {query && results.length === 0 ? <div className="search-empty"><Icon name="search" size={20}/><h3 className="card-title">Nenhum resultado</h3><p className="description">Tente outro termo.</p></div> : null}
+          {results.map((result, index) => <button key={`${result.kind}-${result.title}-${index}`} onClick={() => { result.action(); onClose(); }}><span className="search-icon"><Icon name={result.icon} size={16}/></span><span><strong>{result.title}</strong><small>{result.kind} · {result.detail}</small></span><Icon name="chevron" size={14}/></button>)}
+        </div>
+      </div>
+    </div>
+  );
 }
