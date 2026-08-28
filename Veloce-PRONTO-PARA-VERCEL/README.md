@@ -1,15 +1,15 @@
 # Veloce — Central Operacional
 
-Projeto Next.js reconstruído com foco em operação real, clareza visual e responsividade.
+Projeto Next.js da central operacional Veloce.
 
-## Rodar localmente
+## Rodar
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Validar antes do deploy
+## Validar
 
 ```bash
 npm run typecheck
@@ -18,14 +18,12 @@ npm run build
 
 ## Vercel
 
-Use esta pasta como **Root Directory** do projeto no Vercel.
+A pasta que contém este `package.json` deve ser usada como **Root Directory**.
 
 ## Agente operacional
 
-O endpoint `app/api/agent/route.ts` aceita `POST` e pode encaminhar a solicitação para o n8n quando a variável abaixo estiver configurada:
+As ações principais funcionam localmente no painel. Para encaminhar solicitações adicionais a uma automação externa, configure:
 
 ```env
 N8N_WEBHOOK_URL=https://...
 ```
-
-Sem webhook, os comandos locais da interface continuam funcionando.

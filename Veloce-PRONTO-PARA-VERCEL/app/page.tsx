@@ -1,7 +1,6 @@
 "use client";
 
 import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
-
 type View = "Dashboard" | "Esteira" | "Associados" | "Rede" | "Documentos" | "Rotinas" | "Assistente";
 type Stage = "Entrada" | "Documentos" | "Analise" | "Vistoria" | "Aprovacao" | "Reparo" | "Concluido";
 type Sla = "Dentro" | "Risco" | "Atrasado";
@@ -48,9 +47,9 @@ type Routine = {
   accent?: boolean;
 };
 
-const EVENT_STORAGE = "veloce-premium-events";
-const ASSOCIATE_STORAGE = "veloce-premium-associates";
-const CHANNEL_NAME = "veloce-premium-live";
+const EVENT_STORAGE = "veloce-v4-events";
+const ASSOCIATE_STORAGE = "veloce-v4-associates";
+const CHANNEL_NAME = "veloce-v4-live";
 
 const stageMeta: Array<{ key: Stage; label: string; helper: string }> = [
   { key: "Entrada", label: "Entrada", helper: "Novos eventos" },
@@ -231,7 +230,7 @@ export default function Page() {
   const [query, setQuery] = useState("");
   const [toast, setToast] = useState("");
   const [messages, setMessages] = useState<Message[]>([
-    { id: "m-1", role: "assistant", text: "A operação está carregada. Posso consultar a fila, revisar SLAs, cobrar documentos, abrir cadastros e executar rotinas sem você trocar de tela." },
+    { id: "m-1", role: "assistant", text: "Contexto operacional pronto. Posso consultar a fila, mover eventos, revisar prazos, organizar documentos, abrir cadastros e gerar um resumo sem sair desta tela." },
   ]);
   const [agentInput, setAgentInput] = useState("");
   const [agentBusy, setAgentBusy] = useState(false);
@@ -398,48 +397,100 @@ export default function Page() {
   async function executeAgent(text: string) {
     const value = text.trim();
     if (!value || agentBusy) return;
+
     setMessages((current) => [...current, { id: crypto.randomUUID(), role: "user", text: value }]);
     setAgentInput("");
     setAgentBusy(true);
 
-    const lower = value.toLowerCase();
-    let localReply = "";
-    const eventMatch = value.match(/EV-?\d+/i)?.[0]?.toUpperCase().replace("EV", "EV-").replace("EV--", "EV-");
-    const stage = stageMeta.find((item) => lower.includes(item.label.toLowerCase()) || lower.includes(item.key.toLowerCase()));
+    const lower = value.toLocaleLowerCase("pt-BR");
+    const normalized = lower.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const eventMatch = value.match(/EV[-\s]?\d+/i)?.[0]?.toUpperCase().replace(/\s/g, "").replace(/^EV(?!-)/, "EV-");
+    const stageAliases: Array<[Stage, string[]]> = [
+      ["Entrada", ["entrada", "novo", "novos"]],
+      ["Documentos", ["documentos", "documentacao"]],
+      ["Analise", ["analise", "validacao"]],
+      ["Vistoria", ["vistoria", "inspecao"]],
+      ["Aprovacao", ["aprovacao", "aprovar"]],
+      ["Reparo", ["reparo", "oficina", "execucao"]],
+      ["Concluido", ["concluido", "concluir", "finalizado"]],
+    ];
+    const requestedStage = stageAliases.find(([, aliases]) => aliases.some((alias) => normalized.includes(alias)))?.[0];
 
-    if (eventMatch && stage) {
+    let localReply = "";
+    let handledLocally = false;
+
+    if (eventMatch && requestedStage) {
       const exists = events.some((event) => event.id === eventMatch);
       if (exists) {
-        moveEvent(eventMatch, stage.key);
-        localReply = `${eventMatch} foi atualizado para ${stage.label}. Os quantitativos da esteira já refletem a mudança.`;
+        moveEvent(eventMatch, requestedStage);
+        const label = stageMeta.find((item) => item.key === requestedStage)?.label ?? requestedStage;
+        localReply = `${eventMatch} foi movido para ${label}. A esteira e os quantitativos já foram atualizados.`;
+      } else {
+        localReply = `Não encontrei ${eventMatch} na fila atual. Posso pesquisar por associado ou placa.`;
       }
-    } else if (lower.includes("cadastrar") && lower.includes("associ")) {
+      handledLocally = true;
+    } else if ((normalized.includes("cadastrar") || normalized.includes("novo")) && normalized.includes("associ")) {
       setAssociateModal(true);
-      localReply = "Abri o cadastro de associado. Ao salvar, a base e os indicadores são atualizados imediatamente.";
-    } else if (lower.includes("novo evento") || (lower.includes("criar") && lower.includes("evento"))) {
+      localReply = "Cadastro de associado aberto. Ao salvar, a base e os indicadores são atualizados imediatamente.";
+      handledLocally = true;
+    } else if ((normalized.includes("criar") || normalized.includes("novo")) && normalized.includes("evento")) {
       setEventModal(true);
-      localReply = "Abri o cadastro de evento. Depois de salvar, ele entra na etapa Entrada e aparece na fila.";
-    } else if (lower.includes("sla")) {
-      localReply = `Há ${riskCount} eventos em risco e ${overdueCount} atrasados. Posso abrir a esteira filtrada para você.`;
-    } else if (lower.includes("document")) {
-      localReply = `Há ${docCount} eventos na etapa Documentos. Organizei essa frente como prioridade operacional.`;
-    } else if (lower.includes("relat")) {
+      localReply = "Cadastro de evento aberto. O novo registro entra na esteira assim que for salvo.";
+      handledLocally = true;
+    } else if (normalized.includes("cobrar") && normalized.includes("document")) {
+      handleRoutine("Cobrar documentos pendentes");
+      navigate("Documentos");
+      localReply = `${docCount} eventos em Documentos foram reunidos para cobrança. Abri a frente documental para você.`;
+      handledLocally = true;
+    } else if (normalized.includes("sla") || normalized.includes("prazo") || normalized.includes("atras")) {
+      setSelectedStage("Todos");
+      navigate("Esteira");
+      localReply = `A operação tem ${riskCount} eventos em risco e ${overdueCount} atrasados. Abri a esteira para priorização.`;
+      handledLocally = true;
+    } else if (normalized.includes("relatorio") || normalized.includes("resumo")) {
       downloadReport();
-      localReply = "O resumo operacional foi gerado e o arquivo está pronto no navegador.";
+      localReply = "Resumo operacional gerado com volume ativo, SLAs e distribuição por etapa.";
+      handledLocally = true;
+    } else if (normalized.includes("associados") || normalized.includes("base")) {
+      navigate("Associados");
+      localReply = `A base tem ${associates.length} associados. Abri a consulta de cadastros.`;
+      handledLocally = true;
+    } else if (normalized.includes("rede") || normalized.includes("prestador")) {
+      navigate("Rede");
+      localReply = "Abri a rede credenciada com capacidade, prazo e carga atual dos prestadores.";
+      handledLocally = true;
+    } else if (normalized.includes("esteira") || normalized.includes("fila")) {
+      navigate("Esteira");
+      localReply = `A fila tem ${activeCount} eventos ativos. Abri a esteira com os quantitativos por etapa.`;
+      handledLocally = true;
+    } else if (normalized.includes("quantos") || normalized.includes("status") || normalized.includes("operacao")) {
+      localReply = `Agora: ${activeCount} eventos ativos, ${riskCount} em risco, ${overdueCount} atrasados e ${associates.length} associados na base.`;
+      handledLocally = true;
     }
 
+    if (handledLocally) {
+      await new Promise((resolve) => window.setTimeout(resolve, 260));
+      setMessages((current) => [...current, { id: crypto.randomUUID(), role: "assistant", text: localReply }]);
+      setAgentBusy(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 7000);
     try {
       const response = await fetch("/api/agent", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: value, context: { activeCount, riskCount, overdueCount, selectedStage } }),
+        body: JSON.stringify({ message: value, context: { activeCount, riskCount, overdueCount, associates: associates.length, selectedStage } }),
+        signal: controller.signal,
       });
       const data = await response.json();
-      const reply = localReply || data?.reply || "Solicitação processada.";
+      const reply = data?.reply || "Não identifiquei uma ação específica. Você pode pedir para mover um evento, revisar prazos, cobrar documentos, abrir cadastros ou gerar um resumo.";
       setMessages((current) => [...current, { id: crypto.randomUUID(), role: "assistant", text: reply }]);
     } catch {
-      setMessages((current) => [...current, { id: crypto.randomUUID(), role: "assistant", text: localReply || "Não consegui alcançar a automação externa agora. Os comandos locais continuam disponíveis." }]);
+      setMessages((current) => [...current, { id: crypto.randomUUID(), role: "assistant", text: "Posso executar agora: mover eventos, abrir a esteira, cadastrar associado, criar evento, revisar prazos, organizar documentos, consultar a rede e gerar resumo operacional." }]);
     } finally {
+      window.clearTimeout(timeoutId);
       setAgentBusy(false);
     }
   }
@@ -485,7 +536,7 @@ export default function Page() {
               <Icon name="bell" size={16}/><i className="notification-dot"/>
             </button>
             <button className="assistant-top" onClick={() => navigate("Assistente")}><Icon name="command" size={15}/><span>Agente</span></button>
-            <button className="profile-button" aria-label="Perfil"><span>DV</span></button>
+            <button className="profile-button" aria-label="Perfil" onClick={() => setToast("Perfil operacional ativo.")}><span>DV</span></button>
             <button className="icon-button mobile-menu" aria-label="Abrir menu" onClick={() => setMobileNav((value) => !value)}><Icon name={mobileNav ? "close" : "menu"} size={18}/></button>
           </div>
         </header>
@@ -535,11 +586,11 @@ export default function Page() {
           ) : null}
 
           {view === "Associados" ? (
-            <AssociatesView associates={associates} onNew={() => setAssociateModal(true)} />
+            <AssociatesView associates={associates} onNew={() => setAssociateModal(true)} onAction={setToast} />
           ) : null}
 
-          {view === "Rede" ? <ProvidersView /> : null}
-          {view === "Documentos" ? <DocumentsView onRoutine={handleRoutine} /> : null}
+          {view === "Rede" ? <ProvidersView onAction={setToast} /> : null}
+          {view === "Documentos" ? <DocumentsView onRoutine={handleRoutine} onAction={setToast} /> : null}
           {view === "Rotinas" ? <RoutinesView onRoutine={handleRoutine} onAssistant={() => navigate("Assistente")} /> : null}
 
           {view === "Assistente" ? (
@@ -721,7 +772,7 @@ function PipelineView({ counts, attentions, selectedStage, onSelectStage, events
           </div>
           <div className="toolbar-actions">
             <label className="search-field"><Icon name="search" size={15}/><input value={query} onChange={(event) => onQuery(event.target.value)} placeholder="Buscar evento, placa ou associado"/></label>
-            <button className="icon-button" aria-label="Filtros"><Icon name="filter" size={16}/></button>
+            <button className="icon-button" aria-label="Limpar filtros" onClick={onReset}><Icon name="filter" size={16}/></button>
           </div>
         </div>
         <EventTable events={events} onEvent={onEvent}/>
@@ -745,7 +796,7 @@ function EventTable({ events, onEvent }: { events: EventItem[]; onEvent: (event:
               <td data-label="SLA"><StatusChip type={event.sla === "Atrasado" ? "danger" : event.sla === "Risco" ? "warning" : "success"}>{event.sla}</StatusChip></td>
               <td data-label="Responsável">{event.owner}</td>
               <td data-label="Atualização"><span className="caption">{event.updated}</span></td>
-              <td><button className="icon-button icon-button-plain" aria-label={`Abrir ${event.id}`}><Icon name="chevron" size={15}/></button></td>
+              <td><button className="icon-button icon-button-plain" aria-label={`Abrir ${event.id}`} onClick={(clickEvent) => { clickEvent.stopPropagation(); onEvent(event); }}><Icon name="chevron" size={15}/></button></td>
             </tr>
           ))}
         </tbody>
@@ -755,7 +806,7 @@ function EventTable({ events, onEvent }: { events: EventItem[]; onEvent: (event:
   );
 }
 
-function AssociatesView({ associates, onNew }: { associates: AssociateItem[]; onNew: () => void }) {
+function AssociatesView({ associates, onNew, onAction }: { associates: AssociateItem[]; onNew: () => void; onAction: (message: string) => void }) {
   return (
     <div>
       <section className="summary-strip">
@@ -777,7 +828,7 @@ function AssociatesView({ associates, onNew }: { associates: AssociateItem[]; on
                 <span><Icon name="car" size={14}/><span><strong>{item.vehicle}</strong><small>{item.plate}</small></span></span>
                 <span><Icon name="pin" size={14}/><span><strong>{item.city}</strong><small>{item.updated}</small></span></span>
               </div>
-              <div className="associate-card-foot"><span className="caption">{item.phone}</span><button className="icon-button icon-button-plain" aria-label="Abrir cadastro"><Icon name="arrow" size={15}/></button></div>
+              <div className="associate-card-foot"><span className="caption">{item.phone}</span><button className="icon-button icon-button-plain" aria-label="Abrir cadastro" onClick={() => onAction(`Cadastro de ${item.name} selecionado.`)}><Icon name="arrow" size={15}/></button></div>
             </article>
           ))}
         </div>
@@ -786,7 +837,7 @@ function AssociatesView({ associates, onNew }: { associates: AssociateItem[]; on
   );
 }
 
-function ProvidersView() {
+function ProvidersView({ onAction }: { onAction: (message: string) => void }) {
   return (
     <div>
       <section className="summary-strip">
@@ -797,12 +848,12 @@ function ProvidersView() {
       <section className="provider-grid">
         {providers.map((provider) => (
           <article className="panel provider-card" key={provider.name}>
-            <div className="provider-head"><span className="provider-icon"><Icon name="building" size={18}/></span><button className="icon-button icon-button-plain" aria-label="Mais opções"><Icon name="more" size={17}/></button></div>
+            <div className="provider-head"><span className="provider-icon"><Icon name="building" size={18}/></span><button className="icon-button icon-button-plain" aria-label="Mais opções" onClick={() => onAction(`${provider.name}: capacidade ${provider.load}% e prazo ${provider.eta}.`)}><Icon name="more" size={17}/></button></div>
             <div><h3 className="card-title">{provider.name}</h3><p className="description">{provider.specialty}</p></div>
             <div className="provider-location"><Icon name="pin" size={14}/><span className="caption">{provider.city}</span></div>
             <div className="capacity-block"><div><span className="label">CAPACIDADE</span><strong>{provider.load}%</strong></div><div className="progress-track compact"><i style={{ width: `${provider.load}%` }}/></div></div>
             <div className="provider-stats"><span><small>Prazo</small><strong>{provider.eta}</strong></span><span><small>Nota</small><strong>{provider.score}</strong></span><span><small>Em curso</small><strong>{provider.jobs}</strong></span></div>
-            <button className="button button-light">Ver prestador <Icon name="arrow" size={14}/></button>
+            <button className="button button-light" onClick={() => onAction(`${provider.name} selecionado para consulta.`)}>Ver prestador <Icon name="arrow" size={14}/></button>
           </article>
         ))}
       </section>
@@ -810,7 +861,7 @@ function ProvidersView() {
   );
 }
 
-function DocumentsView({ onRoutine }: { onRoutine: (action: string) => void }) {
+function DocumentsView({ onRoutine, onAction }: { onRoutine: (action: string) => void; onAction: (message: string) => void }) {
   return (
     <div className="documents-layout">
       <section className="panel table-panel">
@@ -822,7 +873,7 @@ function DocumentsView({ onRoutine }: { onRoutine: (action: string) => void }) {
               <span><strong>{doc.item}</strong><small>{doc.event} · {doc.associate}</small></span>
               <span className="caption">{doc.age}</span>
               <StatusChip type={doc.status === "Atrasado" ? "danger" : doc.status === "Pendente" ? "warning" : doc.status === "Recebido" ? "success" : "neutral"}>{doc.status}</StatusChip>
-              <button className="icon-button icon-button-plain" aria-label="Abrir documento"><Icon name="chevron" size={15}/></button>
+              <button className="icon-button icon-button-plain" aria-label="Abrir documento" onClick={() => onAction(`${doc.item} de ${doc.event} selecionado.`)}><Icon name="chevron" size={15}/></button>
             </div>
           ))}
         </div>
@@ -875,8 +926,8 @@ function AssistantView({ messages, input, onInput, onSend, busy, onRoutine, acti
   return (
     <div className="assistant-page">
       <section className="assistant-hero panel">
-        <div className="assistant-hero-main"><span className="assistant-mark"><Icon name="command" size={20}/></span><div><span className="eyebrow">AGENTE OPERACIONAL</span><h2 className="section-title">Converse com a operação.</h2><p className="description">O agente consulta o contexto e executa ações disponíveis no painel.</p></div></div>
-        <div className="assistant-context"><span className="status-dot"/><div><span className="label">CONTEXTO</span><strong>Sincronizado</strong><small>eventos · associados · documentos · rede</small></div></div>
+        <div className="assistant-hero-main"><span className="assistant-mark"><Icon name="command" size={20}/></span><div><span className="eyebrow">COMANDO OPERACIONAL</span><h2 className="section-title">Peça. O painel executa.</h2><p className="description">Consulte o contexto e execute tarefas operacionais sem alternar entre telas.</p></div></div>
+        <div className="assistant-context"><span className="status-dot"/><div><span className="label">CONTEXTO</span><strong>Contexto pronto</strong><small>eventos · associados · documentos · rede</small></div></div>
       </section>
 
       <section className="assistant-layout">
@@ -899,7 +950,7 @@ function AssistantView({ messages, input, onInput, onSend, busy, onRoutine, acti
 
         <aside className="assistant-side">
           <section className="panel agent-actions-card">
-            <PanelHeader title="O que posso executar" description="Atalhos para rotinas frequentes."/>
+            <PanelHeader title="Ações disponíveis" description="Execução imediata para rotinas frequentes."/>
             <div className="agent-actions">
               {[
                 ["Cadastrar associado", "Abre o cadastro e atualiza a base", "userPlus", "Cadastrar novo associado"],
