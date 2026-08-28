@@ -1,26 +1,16 @@
-# Validação do front-end
+# Checklist técnico desta versão
 
-Esta versão foi reconstruída com:
-
-- Helvetica/Helvetica Neue em toda a interface;
-- uma única escala global para título de página;
-- uma única escala global para títulos de seção e cards;
-- uma única escala global para subtítulos;
-- uma única escala global para descrições;
-- uma única escala global para labels;
-- uma única escala global para legendas/captions;
-- grid, margens e espaçamentos consistentes;
-- glassmorphism sutil;
-- hovers, transições e microanimações;
-- SVGs próprios/inline, sem emojis;
-- navegação responsiva;
-- cards de quantidade no topo da esteira;
-- fila escalável em tabela;
-- cadastro de associado com atualização imediata;
-- criação e movimentação de eventos com atualização dos quantitativos;
-- busca global;
-- rotinas operacionais;
-- agente operacional com comandos locais e endpoint opcional para n8n;
-- layouts testados sem overflow horizontal em 1440, 1280, 1024, 768, 520, 390 e 360 px.
-
-A instalação de dependências não foi concluída neste ambiente por timeout de rede. A sintaxe TypeScript dos arquivos principais foi validada localmente.
+- Helvetica / Helvetica Neue / Arial como stack global.
+- Tokens únicos para título de página, título de seção/card, subtítulo, descrição, label e legenda.
+- Grid e espaçamentos centralizados por variáveis CSS.
+- Cards com alturas e alinhamentos consistentes nas grades principais.
+- Glassmorphism sutil, bordas translúcidas, sombras controladas e hover.
+- Ícones vetoriais renderizados em SVG inline; sem emojis.
+- Contraste corrigido nos estados sobre fundos amarelos/escuros.
+- Breakpoints para desktop, notebook/tablet, mobile e telas pequenas.
+- Esteira com quantitativos no topo e fila detalhada abaixo.
+- Cadastro de associado e criação/movimentação de eventos atualizando a interface imediatamente.
+- Busca, drawer, modais, botões e ações principais com handlers.
+- Agente operacional executando localmente comandos de movimentação, cadastro, criação de evento, SLA, documentos, rede, esteira e relatório.
+- Endpoint `/api/agent` com fallback local e encaminhamento opcional ao n8n quando `N8N_WEBHOOK_URL` estiver configurado.
+- Sintaxe TS/TSX dos arquivos principais validada com o compilador TypeScript disponível no ambiente.
