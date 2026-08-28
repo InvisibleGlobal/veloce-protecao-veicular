@@ -1,0 +1,10 @@
+{
+  "name": "Veloce — Esteira de Proteção Veicular",
+  "short_name": "Veloce",
+  "description": "Gestão de eventos, associados, documentos, SLA e prestadores.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f7fb",
+  "theme_color": "#526cff",
+  "icons": []
+}
