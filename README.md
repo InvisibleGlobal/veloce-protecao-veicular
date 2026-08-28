@@ -1,27 +1,31 @@
 # Veloce — Central Operacional
 
-Projeto Next.js pronto para Vercel, reconstruído com interface clara, responsiva e operacional.
+Projeto Next.js reconstruído com foco em operação real, clareza visual e responsividade.
 
-## Deploy
+## Rodar localmente
 
-Mantenha o Root Directory do projeto no Vercel apontando para a pasta onde este `package.json` está localizado.
+```bash
+npm install
+npm run dev
+```
 
-## Assistente externo (opcional)
+## Validar antes do deploy
 
-Se quiser encaminhar solicitações não reconhecidas localmente para n8n, crie no Vercel:
+```bash
+npm run typecheck
+npm run build
+```
 
-`N8N_WEBHOOK_URL=https://...`
+## Vercel
 
-Sem essa variável, os comandos operacionais locais continuam funcionando.
+Use esta pasta como **Root Directory** do projeto no Vercel.
 
-## Comandos locais do assistente
+## Agente operacional
 
-- `Mover EV-2848 para Análise`
-- `Mostrar eventos atrasados`
-- `Cadastrar novo associado`
-- `Criar novo evento`
-- `Gerar resumo da operação`
+O endpoint `app/api/agent/route.ts` aceita `POST` e pode encaminhar a solicitação para o n8n quando a variável abaixo estiver configurada:
 
-## Atualização ao vivo do protótipo
+```env
+N8N_WEBHOOK_URL=https://...
+```
 
-Cadastros e alterações são refletidos imediatamente na interface, persistem no navegador e são sincronizados entre abas abertas pelo `BroadcastChannel`.
+Sem webhook, os comandos locais da interface continuam funcionando.
