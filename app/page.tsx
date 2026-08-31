@@ -85,6 +85,7 @@ const viewMeta: Record<View,{title:string;subtitle:string}> = {
 
 const vehiclePhoto = "https://images.pexels.com/photos/6649925/pexels-photo-6649925.jpeg?auto=compress&cs=tinysrgb&w=1200";
 const operatorPhoto = "https://images.pexels.com/photos/8866777/pexels-photo-8866777.jpeg?auto=compress&cs=tinysrgb&w=600";
+const jeepPromoPhoto = "https://images.pexels.com/photos/1638459/pexels-photo-1638459.jpeg?auto=compress&cs=tinysrgb&w=1400";
 
 function Icon({name,size=18}:{name:IconName;size?:number}) {
   const style = {"--icon-url":`url(/icons/${name}.svg)`,"--icon-size":`${size}px`} as CSSProperties;
@@ -269,6 +270,18 @@ function Dashboard({events,risk,overdue,onNavigate,onEvent,onNewEvent}:{events:E
           <Icon name="arrow" size={16}/>
         </button>)}
         {priorities.length===0&&<div className="overview-empty"><Icon name="check" size={20}/><span>Nenhuma prioridade crítica agora.</span></div>}
+      </div>
+    </section>
+
+    <section className="overview-cta-banner reveal-on-scroll" aria-label="Chamada principal para proteção veicular">
+      <div className="overview-cta-media">
+        <img src={jeepPromoPhoto} alt="Jeep em destaque"/>
+      </div>
+      <div className="overview-cta-content">
+        <span className="panel-kicker">Proteção veicular</span>
+        <h2><span>PROTEJA O SEU</span><span>VEÍCULO AGORA</span></h2>
+        <p>Fale com o Agente e avance para a próxima etapa sem sair da central.</p>
+        <AppButton kind="primary" icon="command" onClick={()=>onNavigate("Assistente")} className="overview-cta-button">Ir para o agente</AppButton>
       </div>
     </section>
   </div>;
