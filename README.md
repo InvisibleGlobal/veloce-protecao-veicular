@@ -1,20 +1,21 @@
-# Veloce — Dashboard protótipo premium v2
+# Veloce — Premium Rebuild V8
 
-Projeto Next.js completo, preparado para substituir o conteúdo da pasta usada pelo Vercel.
+Reconstrução estrutural da interface, sem reaproveitar as camadas visuais V4/V6/V7.
 
-## Mudança principal
-O Dashboard foi reconstruído para seguir a organização da referência fornecida: navegação compacta, grande área de visão do dia e bento grid com associado em destaque, progresso, SLA, checklist, agenda operacional, fluxo, rotinas e leitura ao vivo.
+## Escala tipográfica fixa
+- Desktop: título principal 54px, subtítulo 19px, legendas 15px.
+- Mobile: título principal 33px, subtítulo 15px, legendas 13px.
+- O layout muda de estrutura nos breakpoints; a tipografia não é comprimida para caber.
 
-## Design system
-- Helvetica em toda a UI
-- ícones SVG externos em `/public/icons`
-- glassmorphism sutil
-- amarelo + grafite + off-white
-- grids responsivos e auto-layout
-- hierarquia tipográfica uniforme
-- margens e gutters sistemáticos
+## Direção visual
+- Identidade Veloce: carvão/preto + branco/creme + amarelo.
+- Sem azul/navy.
+- Agente sem verde de baixo contraste.
+- Bento grid com cards de proporções controladas.
+- Bordas finas, sombras discretas e raio consistente.
+- Sidebar desktop; navegação mobile em drawer.
+- SVG físico do Agente redesenhado como terminal operacional geométrico.
+- Imagens integradas em cards de veículo/operação.
 
-## Funcionalidades mantidas
-Esteira, associados, rede, documentos, rotinas, busca, criação de eventos, cadastro de associado, drawer de evento e agente operacional com fallback local + integração opcional via `N8N_WEBHOOK_URL`.
-
-Veja `VALIDACAO-PROTOTIPO.md` para o checklist técnico.
+## Build ID
+`veloce-premium-rebuild-v8-2026-08-31`
