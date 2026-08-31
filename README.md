@@ -1,27 +1,27 @@
-# Veloce — reconstrução da UI do zero
+# Veloce — Curadoria completa
 
-Esta versão descarta a camada visual anterior e mantém apenas a lógica funcional do protótipo: navegação, eventos, associados, rede, documentos, rotinas, agente, modais e atualização de etapas.
+Build ID: `veloce-final-curadoria-completa-2026-08-31`
 
-## Direção de interface
-- identidade Veloce: carvão/preto, branco, creme e amarelo;
-- sidebar operacional no desktop e bottom navigation no mobile;
-- Dashboard em bento grid funcional;
-- conteúdo reduzido ao necessário para decidir e agir;
-- sem glassmorphism, neon, azul/navy ou estética genérica de “AI dashboard”;
-- bordas de 1px, raios sistemáticos e sombras curtas;
-- SVGs físicos em `public/icons`;
-- fotografias reais remotas para o veículo e o perfil operacional.
+Esta versão substitui as tentativas anteriores e concentra uma única camada visual em `app/page.tsx` + `app/globals.css`.
 
-## Escala tipográfica obrigatória
-Desktop:
-- título principal: 54px;
-- subtítulo: 19px;
-- legenda/corpo mínimo: 15px.
+## Rodar localmente
+```bash
+npm install
+npm run validate
+npm run dev
+```
 
-Mobile:
-- título principal: 33px;
-- subtítulo: 15px;
-- legenda/corpo mínimo: 13px.
+## Build
+```bash
+npm run build
+```
 
-## Fluxo para produção
-Substitua o conteúdo de `Veloce-PRONTO-PARA-VERCEL` por esta pasta, faça commit e `git push origin main`.
+## Publicar no fluxo atual GitHub → Vercel
+Substitua o conteúdo de `Veloce-PRONTO-PARA-VERCEL` por este projeto, faça `git add -A`, commit e `git push origin main`.
+
+## QA
+- `VALIDACAO-REQUISITOS-FINAL.md`
+- `VALIDACAO-QA.md`
+- `DESIGN-SYSTEM.md`
+- `ASSETS.md`
+- renders em `qa/renders/`

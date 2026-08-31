@@ -1,17 +1,8 @@
-# Assets fotográficos — Veloce V10
+# Assets fotográficos
 
-A aplicação final não usa os antigos assets locais de veículo/operadora que tinham aparência sintética.
+A aplicação usa fotografia pública real, sem geração de imagem para esta entrega.
 
-## Veículo
-Pexels — Trac Vu, “Black SUV on the Road”:
-https://www.pexels.com/photo/black-suv-on-the-road-6649925/
+- Veículo: Trac Vu / Pexels — “Black SUV on the Road”, foto 6649925. URL usada no código: `https://images.pexels.com/photos/6649925/pexels-photo-6649925.jpeg?auto=compress&cs=tinysrgb&w=1200`.
+- Operação/atendimento: Yan Krukau / Pexels — “Woman Wearing Headset Smiling”, foto 8866777. URL usada no código: `https://images.pexels.com/photos/8866777/pexels-photo-8866777.jpeg?auto=compress&cs=tinysrgb&w=600`.
 
-Arquivo carregado em runtime por `images.pexels.com` dentro de `app/page.tsx`.
-
-## Profissional de atendimento
-Pexels — Yan Krukau, “Woman Wearing Headset Smiling”:
-https://www.pexels.com/photo/woman-wearing-headset-smiling-8866777/
-
-Arquivo carregado em runtime por `images.pexels.com` dentro de `app/page.tsx`.
-
-Ambas as páginas são identificadas pelo próprio Pexels como “Free to use”.
+As páginas do Pexels identificam ambas como “Free to use”.
