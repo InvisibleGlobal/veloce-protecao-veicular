@@ -1,0 +1,11 @@
+
+> veloce-central-operacional@12.0.0 validate
+> node scripts/validate.mjs
+
+VALIDACAO PASSOU
+build-id: veloce-final-curadoria-completa-2026-08-31
+SVGs fisicos: 46
+menor font-size explicito desktop: 15px
+menor font-size explicito mobile: 15px
+app/page.tsx: syntax_errors=0
+app/layout.tsx: syntax_errors=0

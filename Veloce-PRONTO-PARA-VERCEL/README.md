@@ -1,20 +1,27 @@
-# Veloce — Dashboard protótipo premium v2
+# Veloce — Curadoria completa
 
-Projeto Next.js completo, preparado para substituir o conteúdo da pasta usada pelo Vercel.
+Build ID: `veloce-final-curadoria-completa-2026-08-31`
 
-## Mudança principal
-O Dashboard foi reconstruído para seguir a organização da referência fornecida: navegação compacta, grande área de visão do dia e bento grid com associado em destaque, progresso, SLA, checklist, agenda operacional, fluxo, rotinas e leitura ao vivo.
+Esta versão substitui as tentativas anteriores e concentra uma única camada visual em `app/page.tsx` + `app/globals.css`.
 
-## Design system
-- Helvetica em toda a UI
-- ícones SVG externos em `/public/icons`
-- glassmorphism sutil
-- amarelo + grafite + off-white
-- grids responsivos e auto-layout
-- hierarquia tipográfica uniforme
-- margens e gutters sistemáticos
+## Rodar localmente
+```bash
+npm install
+npm run validate
+npm run dev
+```
 
-## Funcionalidades mantidas
-Esteira, associados, rede, documentos, rotinas, busca, criação de eventos, cadastro de associado, drawer de evento e agente operacional com fallback local + integração opcional via `N8N_WEBHOOK_URL`.
+## Build
+```bash
+npm run build
+```
 
-Veja `VALIDACAO-PROTOTIPO.md` para o checklist técnico.
+## Publicar no fluxo atual GitHub → Vercel
+Substitua o conteúdo de `Veloce-PRONTO-PARA-VERCEL` por este projeto, faça `git add -A`, commit e `git push origin main`.
+
+## QA
+- `VALIDACAO-REQUISITOS-FINAL.md`
+- `VALIDACAO-QA.md`
+- `DESIGN-SYSTEM.md`
+- `ASSETS.md`
+- renders em `qa/renders/`

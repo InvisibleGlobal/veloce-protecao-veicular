@@ -1,6 +1,6 @@
 {
-  "name": "veloce-operacao",
-  "version": "4.0.0",
+  "name": "veloce-central-operacional",
+  "version": "12.0.0",
   "private": true,
   "engines": {
     "node": ">=20.9.0"
@@ -10,8 +10,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "validate": "node scripts/validate.mjs",
-    "prebuild": "npm run validate"
+    "validate": "node scripts/validate.mjs"
   },
   "dependencies": {
     "next": "16.2.6",
