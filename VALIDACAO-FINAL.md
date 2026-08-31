@@ -9,7 +9,7 @@ Validações executadas nesta versão:
 - Assets: foto principal, avatar, marca e favicon presentes.
 - CSS: delimitadores balanceados.
 - Agente: rota local testada com sucesso para consulta de SLA e fallback sem n8n.
-- Responsividade: QA visual disponível em `qa-prototype-1440.png` e `qa-prototype-390.png`.
+- Responsividade: os PNGs `qa-baseline-2026-08-28-1440.png` e `qa-baseline-2026-08-28-390.png` foram preservados apenas como baseline anterior à curadoria de 31/08. A versão atual foi validada estruturalmente pelo script de validação e pelo parser TypeScript; consulte `CORRECOES-2026-08-31.md`.
 - Build guard: `npm run build` executa `npm run validate` automaticamente antes do `next build`.
 
 ## Limitação do ambiente de geração

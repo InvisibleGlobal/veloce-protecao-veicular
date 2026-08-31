@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, MouseEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 type View = "Dashboard" | "Esteira" | "Associados" | "Rede" | "Documentos" | "Rotinas" | "Assistente";
 type Stage = "Entrada" | "Documentos" | "Analise" | "Vistoria" | "Aprovacao" | "Reparo" | "Concluido";
 type Sla = "Dentro" | "Risco" | "Atrasado";
@@ -132,60 +132,17 @@ const viewCopy: Record<View, { eyebrow: string; title: string; subtitle: string 
 };
 
 function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
-  const common = {
-    width: size,
-    height: size,
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 1.8,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-    "aria-hidden": true,
-  };
-  const paths: Record<IconName, ReactNode> = {
-    grid: <><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></>,
-    flow: <><path d="M4 6h16"/><path d="M4 12h10"/><path d="M4 18h16"/><circle cx="17" cy="12" r="3"/></>,
-    users: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>,
-    network: <><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="18" r="2.5"/><circle cx="19" cy="18" r="2.5"/><path d="M12 7.5v4"/><path d="m12 11.5-5.2 4.2"/><path d="m12 11.5 5.2 4.2"/></>,
-    file: <><path d="M6 2h9l4 4v16H6z"/><path d="M14 2v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/></>,
-    bolt: <path d="m13 2-8 11h7l-1 9 8-12h-7z"/>,
-    message: <><path d="M21 15a4 4 0 0 1-4 4H8l-5 3 1.5-4.5A8 8 0 1 1 21 15Z"/><path d="M8 10h8M8 14h5"/></>,
-    plus: <><path d="M12 5v14"/><path d="M5 12h14"/></>,
-    search: <><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></>,
-    bell: <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></>,
-    chevron: <path d="m9 18 6-6-6-6"/>,
-    check: <path d="m5 12 4 4L19 6"/>,
-    clock: <><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></>,
-    arrow: <><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></>,
-    close: <><path d="m6 6 12 12"/><path d="m18 6-12 12"/></>,
-    send: <><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></>,
-    filter: <><path d="M4 6h16"/><path d="M7 12h10"/><path d="M10 18h4"/></>,
-    upload: <><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 20h14"/></>,
-    car: <><path d="m5 11 2-5h10l2 5"/><rect x="3" y="11" width="18" height="7" rx="2"/><circle cx="7" cy="18" r="1"/><circle cx="17" cy="18" r="1"/></>,
-    shield: <><path d="M12 3 4.5 6v5c0 5 3.2 8.2 7.5 10 4.3-1.8 7.5-5 7.5-10V6Z"/><path d="m9 12 2 2 4-4"/></>,
-    menu: <><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></>,
-    trend: <><path d="M4 18 10 12l4 4 6-8"/><path d="M16 8h4v4"/></>,
-    refresh: <><path d="M20 7v5h-5"/><path d="M4 17v-5h5"/><path d="M6.1 8a7 7 0 0 1 11.2-1.8L20 12"/><path d="M17.9 16a7 7 0 0 1-11.2 1.8L4 12"/></>,
-    phone: <path d="M7 3 4 5c0 8.3 6.7 15 15 15l2-3-5-3-2 2c-3-1.2-5.8-4-7-7l2-2Z"/>,
-    mail: <><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></>,
-    pin: <><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></>,
-    more: <><circle cx="5" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1" fill="currentColor" stroke="none"/></>,
-    documentCheck: <><path d="M6 2h9l4 4v16H6z"/><path d="M14 2v5h5"/><path d="m9 15 2 2 4-4"/></>,
-    alert: <><path d="M12 3 2.7 19h18.6Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></>,
-    report: <><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></>,
-    scan: <><path d="M8 3H4a1 1 0 0 0-1 1v4"/><path d="M16 3h4a1 1 0 0 1 1 1v4"/><path d="M8 21H4a1 1 0 0 1-1-1v-4"/><path d="M16 21h4a1 1 0 0 0 1-1v-4"/><path d="M7 12h10"/></>,
-    settings: <><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.12 2.12-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.04 1.56V20h-3v-.09a1.7 1.7 0 0 0-1.04-1.56 1.7 1.7 0 0 0-1.88.34l-.06.06-2.12-2.12.06-.06A1.7 1.7 0 0 0 7 14.69a1.7 1.7 0 0 0-1.56-1.04H5.3v-3h.14A1.7 1.7 0 0 0 7 9.61a1.7 1.7 0 0 0-.34-1.88L6.6 7.67 8.72 5.55l.06.06a1.7 1.7 0 0 0 1.88.34 1.7 1.7 0 0 0 1.04-1.56V4.3h3v.09a1.7 1.7 0 0 0 1.04 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.12 2.12-.06.06a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.56 1.04h.14v3h-.14A1.7 1.7 0 0 0 19.4 15Z"/></>,
-    eye: <><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></>,
-    command: <><path d="M9 6V4a2 2 0 1 0-2 2h10a2 2 0 1 0-2-2v16a2 2 0 1 0 2-2H7a2 2 0 1 0 2 2Z"/></>,
-    activity: <path d="M3 12h4l2-6 4 12 2-6h6"/>,
-    userPlus: <><path d="M15 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M19 8v6"/><path d="M16 11h6"/></>,
-    building: <><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h2M14 7h2M8 11h2M14 11h2M8 15h2M14 15h2"/></>,
-    route: <><circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h3a4 4 0 0 0 4-4v-4a4 4 0 0 1 3-4"/></>,
-    calendar: <><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></>,
-    download: <><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></>,
-  };
-  return <svg {...common}>{paths[name]}</svg>;
+  return (
+    <img
+      className="svg-icon"
+      src={`/icons/${name}.svg`}
+      width={size}
+      height={size}
+      alt=""
+      aria-hidden="true"
+      draggable={false}
+    />
+  );
 }
 
 function StatusChip({ type, children }: { type: "success" | "warning" | "danger" | "neutral"; children: ReactNode }) {
@@ -513,7 +470,7 @@ export default function Page() {
 
   return (
     <main className="app-stage">
-      <section className="app-shell">
+      <section className={`app-shell ${view === "Rotinas" ? "app-shell-routines" : ""} ${view === "Dashboard" ? "app-shell-dashboard" : ""}`}>
         <header className="topbar">
           <button className="brand" onClick={() => navigate("Dashboard")} aria-label="Ir para a visão geral">
             <img src="/veloce-mark.svg" alt="" />
@@ -536,23 +493,25 @@ export default function Page() {
               <Icon name="bell" size={16}/><i className="notification-dot"/>
             </button>
             <button className="assistant-top" onClick={() => navigate("Assistente")}><Icon name="command" size={15}/><span>Agente</span></button>
-            <button className="profile-button" aria-label="Perfil" onClick={() => setToast("Perfil operacional ativo.")}><span>DV</span></button>
+            <button className="profile-button profile-photo-button" aria-label="Perfil" onClick={() => setToast("Perfil operacional ativo.")}><img src="/member-avatar.jpg" alt="Perfil operacional"/></button>
             <button className="icon-button mobile-menu" aria-label="Abrir menu" onClick={() => setMobileNav((value) => !value)}><Icon name={mobileNav ? "close" : "menu"} size={18}/></button>
           </div>
         </header>
 
         <div className="page-shell">
-          <header className="page-header">
-            <div className="page-copy">
-              <span className="eyebrow">{pageInfo.eyebrow}</span>
-              <h1 className="page-title">{pageInfo.title}</h1>
-              <p className="subtitle">{pageInfo.subtitle}</p>
-            </div>
-            <div className="page-actions">
-              <button className="button button-light" onClick={() => setAssociateModal(true)}><Icon name="userPlus" size={15}/>Novo associado</button>
-              <button className="button button-dark" onClick={() => setEventModal(true)}><Icon name="plus" size={15}/>Novo evento</button>
-            </div>
-          </header>
+          {view !== "Dashboard" ? (
+            <header className="page-header page-header-prototype">
+              <div className="page-copy">
+                <span className="eyebrow">{pageInfo.eyebrow}</span>
+                <h1 className="page-title">{pageInfo.title}</h1>
+                <p className="subtitle">{pageInfo.subtitle}</p>
+              </div>
+              <div className="page-actions">
+                <button className="button button-light" onClick={() => setAssociateModal(true)}><Icon name="userPlus" size={15}/>Novo associado</button>
+                <button className="button button-dark" onClick={() => setEventModal(true)}><Icon name="plus" size={15}/>Novo evento</button>
+              </div>
+            </header>
+          ) : null}
 
           {view === "Dashboard" ? (
             <DashboardView
@@ -636,92 +595,303 @@ function DashboardView({
   onAssistant: () => void;
 }) {
   const priority = events.filter((item) => item.sla !== "Dentro").slice(0, 4);
+  const spotlight = associates[0];
+  const completedCount = counts.Concluido;
+  const attentionCount = riskCount + overdueCount;
+  const safeCount = Math.max(activeCount - attentionCount, 0);
+  const slaPercent = activeCount ? Math.round((safeCount / activeCount) * 100) : 0;
+
+  const stageBars = stageMeta.slice(0, 6).map((stage) => ({
+    key: stage.key,
+    short: stage.label.slice(0, 3),
+    label: stage.label,
+    value: counts[stage.key],
+  }));
+  const maxStageValue = Math.max(...stageBars.map((item) => item.value), 1);
+
+  const ownerLoad = [
+    { name: "Nina", value: events.filter((item) => item.owner === "Nina").length, tone: "dark" },
+    { name: "Larissa", value: events.filter((item) => item.owner === "Larissa").length, tone: "yellow" },
+    { name: "André", value: events.filter((item) => item.owner === "André").length, tone: "soft" },
+  ];
+
+  const agendaItems = [
+    {
+      time: "08:30",
+      title: "Triagem de novas entradas",
+      detail: `${counts.Entrada} eventos para validar na abertura`,
+      chips: ["Nina", "Larissa"],
+      accent: "dark",
+    },
+    {
+      time: "10:00",
+      title: "Cobrança documental",
+      detail: `${counts.Documentos} itens aguardando retorno`,
+      chips: ["Docs", "SLA"],
+      accent: "light",
+    },
+    {
+      time: "13:30",
+      title: "Distribuição para rede",
+      detail: `${providers.length} prestadores prontos para consulta`,
+      chips: ["Rede", "Campo"],
+      accent: "yellow",
+    },
+    {
+      time: "16:00",
+      title: "Fechamento do relatório",
+      detail: `${completedCount} eventos já concluídos hoje`,
+      chips: ["Resumo"],
+      accent: "light",
+    },
+  ];
+
+  const liveItems = [
+    {
+      title: `${priority[0]?.id || "EV-2848"} precisa de atenção`,
+      detail: priority[0] ? `${priority[0].associate} · ${priority[0].stage}` : "Fila priorizada automaticamente",
+      icon: "alert" as IconName,
+    },
+    {
+      title: `${counts.Documentos} documentações em conferência`,
+      detail: "Pendências e recebimentos sincronizados",
+      icon: "file" as IconName,
+    },
+    {
+      title: `${providers[1]?.name || "Vistocar Leste"} com melhor disponibilidade`,
+      detail: providers[1]?.eta ? `Prazo estimado: ${providers[1].eta}` : "Rede monitorada em tempo real",
+      icon: "building" as IconName,
+    },
+  ];
+
+  const compactRoutines = routines.slice(0, 3);
+
   return (
-    <div className="dashboard-view">
-      <section className="hero-layout">
-        <div className="hero-intro">
-          <div className="hero-progress">
-            <div className="hero-progress-top"><span className="label">FLUXO DO DIA</span><span className="caption">78% dentro do SLA</span></div>
-            <div className="progress-track"><i style={{ width: "78%" }}/></div>
+    <div className="dashboard-view dashboard-prototype-view">
+      <section className="prototype-board panel">
+        <div className="prototype-board-top">
+          <div className="prototype-chip-row">
+            <span className="prototype-brand">Visão operacional</span>
+            {[
+              { label: "Hoje", action: () => onNavigate("Dashboard") },
+              { label: "Esteira", action: () => onNavigate("Esteira") },
+              { label: "Documentos", action: () => onNavigate("Documentos") },
+              { label: "Rede", action: () => onNavigate("Rede") },
+            ].map((item, index) => (
+              <button key={item.label} className={`prototype-tab ${index === 0 ? "active" : ""}`} onClick={item.action}>
+                {item.label}
+              </button>
+            ))}
           </div>
-          <div className="hero-kpis">
-            <StatNumber value={activeCount} label="Eventos ativos" detail="em acompanhamento" icon="activity"/>
-            <StatNumber value={riskCount + overdueCount} label="Atenções" detail={`${overdueCount} atrasados`} icon="alert"/>
-            <StatNumber value={associates.length} label="Associados" detail="base disponível" icon="users"/>
+          <div className="prototype-mini-actions">
+            <button className="icon-button" aria-label="Buscar" onClick={() => onNavigate("Associados")}><Icon name="search" size={15}/></button>
+            <button className="icon-button" aria-label="Notificações" onClick={onAssistant}><Icon name="bell" size={15}/></button>
+            <button className="icon-button" aria-label="Configurações" onClick={() => onNavigate("Rotinas")}><Icon name="settings" size={15}/></button>
           </div>
+        </div>
+
+        <div className="prototype-overview">
+          <div className="prototype-overview-copy">
+            <span className="eyebrow">DASHBOARD OPERACIONAL</span>
+            <h2 className="prototype-welcome-title">Bem-vinda à operação Veloce</h2>
+            <p className="description prototype-welcome-text">Acompanhe volume, SLAs, responsáveis, agenda e tarefas críticas em uma única visão.</p>
+            <div className="prototype-pills">
+              <span className="prototype-pill prototype-pill-dark">{counts.Entrada} novas entradas</span>
+              <span className="prototype-pill prototype-pill-yellow">{attentionCount} atenções imediatas</span>
+              <span className="prototype-pill">{completedCount} concluídos</span>
+            </div>
+          </div>
+          <div className="prototype-metric-cluster">
+            <div><small>Eventos</small><strong>{activeCount}</strong><span>em acompanhamento</span></div>
+            <div><small>Críticos</small><strong>{attentionCount}</strong><span>risco e atraso</span></div>
+            <div><small>Concluídos</small><strong>{completedCount}</strong><span>hoje na esteira</span></div>
+          </div>
+        </div>
+
+        <div className="prototype-main-grid">
+          <article className="prototype-member-card">
+            <div className="prototype-card-head">
+              <div>
+                <span className="label">DESTAQUE DO DIA</span>
+                <h3 className="card-title">Associada acompanhada</h3>
+              </div>
+              <button className="icon-button icon-button-plain" aria-label="Abrir cadastro" onClick={() => onNavigate("Associados")}><Icon name="arrow" size={15}/></button>
+            </div>
+            <button className="prototype-member-photo" onClick={() => spotlight && onNavigate("Associados")}>
+              <img src="/member-main.jpg" alt="Associada em destaque" />
+              <span className="prototype-member-overlay">
+                <strong>{spotlight?.name || "Marina Costa"}</strong>
+                <small>Associada em acompanhamento</small>
+              </span>
+            </button>
+            <button className="prototype-vehicle-card" onClick={() => onNavigate("Esteira")} aria-label="Abrir evento do veículo">
+              <img src="https://images.unsplash.com/photo-1629373373535-b5e644663c32?auto=format&fit=crop&w=900&q=82" alt="Jeep Compass em acompanhamento" />
+              <span className="prototype-vehicle-copy">
+                <small>VEÍCULO</small>
+                <strong>{spotlight?.vehicle || "Jeep Compass"}</strong>
+                <span>{spotlight?.plate || "RTA-8D21"} · São Paulo, SP</span>
+              </span>
+              <span className="prototype-vehicle-arrow"><Icon name="arrow" size={14}/></span>
+            </button>
+            <div className="prototype-member-links">
+              <button onClick={() => onNavigate("Associados")}><span>Dados cadastrais</span><Icon name="chevron" size={14}/></button>
+              <button onClick={() => onNavigate("Documentos")}><span>Documentos</span><Icon name="chevron" size={14}/></button>
+              <button onClick={() => onNavigate("Rede")}><span>Rede acionada</span><Icon name="chevron" size={14}/></button>
+            </div>
+          </article>
+
+          <article className="prototype-progress-card">
+            <div className="prototype-card-head">
+              <div>
+                <span className="label">PROGRESSO</span>
+                <h3 className="card-title">Volume por etapa</h3>
+              </div>
+              <span className="prototype-badge">Atualizado agora</span>
+            </div>
+            <div className="prototype-progress-summary">
+              <strong>6.1 h</strong>
+              <span>tempo médio até a primeira ação</span>
+            </div>
+            <div className="prototype-bar-chart" aria-label="Gráfico de etapas">
+              {stageBars.map((item) => (
+                <div key={item.key} className="prototype-bar-item">
+                  <div className="prototype-bar-rail"><i style={{ height: `${Math.max(18, Math.round((item.value / maxStageValue) * 100))}%` }}/></div>
+                  <strong>{item.value}</strong>
+                  <span>{item.short}</span>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <article className="prototype-sla-card">
+            <div className="prototype-card-head">
+              <div>
+                <span className="label">SLA</span>
+                <h3 className="card-title">Saúde da operação</h3>
+              </div>
+              <button className="icon-button icon-button-plain" aria-label="Abrir agente" onClick={onAssistant}><Icon name="command" size={15}/></button>
+            </div>
+            <div className="prototype-donut-wrap">
+              <div className="prototype-donut" style={{ ["--prototype-progress" as string]: `${slaPercent}%` } as React.CSSProperties}>
+                <div>
+                  <strong>{slaPercent}%</strong>
+                  <span>dentro do SLA</span>
+                </div>
+              </div>
+            </div>
+            <div className="prototype-owner-list">
+              {ownerLoad.map((owner) => (
+                <div key={owner.name}>
+                  <span><i className={`dot dot-${owner.tone}`}/>{owner.name}</span>
+                  <strong>{owner.value}</strong>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <article className="prototype-task-card">
+            <div className="prototype-task-top">
+              <div>
+                <span className="eyebrow eyebrow-light">CHECKLIST CRÍTICO</span>
+                <h3 className="section-title section-title-light">Prioridades da rodada</h3>
+              </div>
+              <strong>{priority.length}/4</strong>
+            </div>
+            <div className="prototype-task-progress">
+              <span>{attentionCount} itens sensíveis</span>
+              <div className="prototype-task-track"><i style={{ width: `${Math.max(26, Math.min(100, attentionCount * 20))}%` }}/></div>
+            </div>
+            <div className="prototype-task-list">
+              {priority.map((event) => (
+                <button key={event.id} onClick={() => onEvent(event)}>
+                  <span className="prototype-task-icon"><Icon name={event.sla === "Atrasado" ? "alert" : "clock"} size={14}/></span>
+                  <span className="prototype-task-copy">
+                    <strong>{event.associate}</strong>
+                    <small>{event.id} · {stageMeta.find((stage) => stage.key === event.stage)?.label}</small>
+                  </span>
+                  <StatusChip type={event.sla === "Atrasado" ? "danger" : "warning"}>{event.sla}</StatusChip>
+                </button>
+              ))}
+            </div>
+          </article>
+
+          <article className="prototype-calendar-card">
+            <div className="prototype-card-head prototype-card-head-calendar">
+              <div>
+                <span className="label">AGENDA OPERACIONAL</span>
+                <h3 className="card-title">Agenda operacional do dia</h3>
+              </div>
+              <div className="prototype-calendar-controls">
+                <span>Outubro</span>
+                <button className="icon-button icon-button-plain" aria-label="Abrir esteira" onClick={() => onNavigate("Esteira")}><Icon name="calendar" size={15}/></button>
+              </div>
+            </div>
+            <div className="prototype-calendar-grid prototype-calendar-grid-v2">
+              {agendaItems.map((item) => (
+                <button key={item.time} className={`prototype-agenda-entry prototype-agenda-${item.accent}`} onClick={() => onNavigate("Esteira")}>
+                  <span className="prototype-agenda-entry-top">
+                    <span className="prototype-agenda-time">{item.time}</span>
+                    <span className="prototype-agenda-tags">
+                      {item.chips.map((chip) => <span key={chip}>{chip}</span>)}
+                    </span>
+                  </span>
+                  <strong>{item.title}</strong>
+                  <small>{item.detail}</small>
+                  <span className="prototype-agenda-entry-foot">Ver na esteira <Icon name="arrow" size={12}/></span>
+                </button>
+              ))}
+            </div>
+          </article>
         </div>
       </section>
 
-      <section className="stage-section">
-        <div className="section-inline-head">
-          <div><h2 className="section-title">Fluxo operacional</h2><p className="description">Clique em uma etapa para abrir a fila correspondente.</p></div>
-          <button className="text-link" onClick={() => onNavigate("Esteira")}>Ver esteira <Icon name="arrow" size={14}/></button>
-        </div>
-        <StageGrid counts={counts} attentions={attentions} onSelect={onStage}/>
-      </section>
-
-      <section className="bento-grid">
-        <article className="panel queue-card">
-          <PanelHeader title="Fila prioritária" description="Eventos com risco ou atraso ordenados para ação." action={<button className="icon-button icon-button-plain" aria-label="Abrir esteira" onClick={() => onNavigate("Esteira")}><Icon name="arrow" size={16}/></button>}/>
-          <div className="priority-table">
-            {priority.map((event) => (
-              <button key={event.id} className="priority-row" onClick={() => onEvent(event)}>
-                <span className="priority-id">{event.id}</span>
-                <span className="priority-main"><strong>{event.associate}</strong><small>{event.vehicle} · {event.plate}</small></span>
-                <span className="priority-stage">{stageMeta.find((stage) => stage.key === event.stage)?.label}</span>
-                <StatusChip type={event.sla === "Atrasado" ? "danger" : "warning"}>{event.sla}</StatusChip>
-                <Icon name="chevron" size={14}/>
+      <section className="prototype-bottom-grid">
+        <article className="panel prototype-stage-panel">
+          <PanelHeader title="Fluxo operacional" description="Etapas clicáveis com leitura rápida e responsiva." action={<button className="text-link" onClick={() => onNavigate("Esteira")}>Abrir esteira <Icon name="arrow" size={14}/></button>}/>
+          <div className="prototype-stage-grid">
+            {stageMeta.map((stage) => (
+              <button key={stage.key} className="prototype-stage-mini" onClick={() => onStage(stage.key)}>
+                <div>
+                  <span className="caption">{stage.helper}</span>
+                  <strong>{stage.label}</strong>
+                </div>
+                <div className="prototype-stage-mini-foot">
+                  <span>{counts[stage.key]}</span>
+                  {attentions[stage.key] > 0 ? <small>{attentions[stage.key]} atenção</small> : <small>ok</small>}
+                </div>
               </button>
             ))}
           </div>
         </article>
 
-        <article className="panel workload-card">
-          <PanelHeader title="Carga da operação" description="Distribuição dos eventos ativos."/>
-          <div className="workload-visual">
-            <div className="donut" style={{ "--progress": "74%" } as React.CSSProperties}>
-              <div><strong>74%</strong><span>capacidade</span></div>
-            </div>
-            <div className="workload-list">
-              <div><span><i className="dot dot-dark"/>Nina</span><strong>12</strong></div>
-              <div><span><i className="dot dot-yellow"/>Larissa</span><strong>9</strong></div>
-              <div><span><i className="dot dot-soft"/>André</span><strong>7</strong></div>
-            </div>
-          </div>
-        </article>
-
-        <article className="panel routines-card">
-          <PanelHeader title="Ações de um clique" description="Rotinas que normalmente exigem várias etapas."/>
-          <div className="quick-actions">
-            {routines.slice(0, 4).map((routine) => (
-              <button key={routine.title} className="quick-action" onClick={() => onRoutine(routine.action)}>
-                <span className="quick-icon"><Icon name={routine.icon} size={17}/></span>
-                <span><strong>{routine.title}</strong><small>{routine.description}</small></span>
+        <article className="panel prototype-routines-panel">
+          <PanelHeader title="Ações de um clique" description="Mantive as rotinas e deixei o acesso mais nobre." action={<button className="button button-dark" onClick={onAssistant}><Icon name="command" size={14}/>Abrir agente</button>}/>
+          <div className="prototype-routine-list">
+            {compactRoutines.map((routine) => (
+              <button key={routine.title} className="prototype-routine-item" onClick={() => onRoutine(routine.action)}>
+                <span className="quick-icon"><Icon name={routine.icon} size={16}/></span>
+                <span>
+                  <strong>{routine.title}</strong>
+                  <small>{routine.description}</small>
+                </span>
                 <Icon name="arrow" size={14}/>
               </button>
             ))}
           </div>
         </article>
 
-        <article className="assistant-card">
-          <div className="assistant-card-top">
-            <span className="assistant-mark"><Icon name="command" size={19}/></span>
-            <StatusChip type="success">Operação conectada</StatusChip>
-          </div>
-          <div className="assistant-card-copy">
-            <span className="eyebrow eyebrow-light">COMANDO DIRETO</span>
-            <h2 className="section-title section-title-light">Resolva sem trocar de tela.</h2>
-            <p className="description description-light">Peça para consultar, mover, cobrar, revisar ou gerar um resumo da operação.</p>
-          </div>
-          <button className="button button-yellow" onClick={onAssistant}><Icon name="message" size={15}/>Abrir agente</button>
-        </article>
-
-        <article className="panel live-card">
-          <PanelHeader title="Atividade recente" description="Atualizações registradas na operação."/>
-          <div className="activity-list">
-            <div><span className="activity-icon"><Icon name="check" size={14}/></span><span><strong>EV-2847 enviado para vistoria</strong><small>André · há 8 min</small></span></div>
-            <div><span className="activity-icon"><Icon name="file" size={14}/></span><span><strong>Documento recebido em EV-2836</strong><small>Larissa · há 14 min</small></span></div>
-            <div><span className="activity-icon"><Icon name="users" size={14}/></span><span><strong>Cadastro de Marina atualizado</strong><small>Base operacional · há 21 min</small></span></div>
+        <article className="panel prototype-live-panel">
+          <PanelHeader title="Leitura ao vivo" description="Sinais relevantes sem poluir a interface."/>
+          <div className="prototype-live-list">
+            {liveItems.map((item) => (
+              <div key={item.title} className="prototype-live-item">
+                <span className="activity-icon"><Icon name={item.icon} size={15}/></span>
+                <span>
+                  <strong>{item.title}</strong>
+                  <small>{item.detail}</small>
+                </span>
+              </div>
+            ))}
           </div>
         </article>
       </section>
@@ -754,22 +924,52 @@ function PipelineView({ counts, attentions, selectedStage, onSelectStage, events
   onEvent: (event: EventItem) => void;
   onReset: () => void;
 }) {
+  const total = Object.values(counts).reduce((sum, value) => sum + value, 0);
+  const sensitive = Object.values(attentions).reduce((sum, value) => sum + value, 0);
+  const selectedLabel = selectedStage === "Todos" ? "Todos os eventos" : stageMeta.find((stage) => stage.key === selectedStage)?.label;
   return (
-    <div>
-      <section className="stage-section stage-section-large">
-        <div className="section-inline-head">
-          <div><h2 className="section-title">Volume por etapa</h2><p className="description">Os cartões continuam legíveis mesmo quando a fila cresce.</p></div>
-          {selectedStage !== "Todos" ? <button className="text-link" onClick={onReset}>Limpar filtro <Icon name="close" size={14}/></button> : null}
-        </div>
-        <StageGrid counts={counts} attentions={attentions} onSelect={onSelectStage} selected={selectedStage}/>
+    <div className="workspace-view pipeline-workspace">
+      <section className="workspace-bento pipeline-hero-bento">
+        <article className="panel workspace-hero-card pipeline-hero-card">
+          <div className="workspace-hero-copy">
+            <span className="eyebrow">ESTEIRA AO VIVO</span>
+            <h2 className="workspace-display-title">Volume primeiro. Detalhe quando importa.</h2>
+            <p className="description">A fila inteira continua navegável, mas a leitura começa por quantidades, gargalos e próximas decisões.</p>
+          </div>
+          <div className="workspace-hero-metrics">
+            <div><span className="label">NA ESTEIRA</span><strong>{total}</strong><small>eventos visíveis</small></div>
+            <div><span className="label">ATENÇÕES</span><strong>{sensitive}</strong><small>risco ou atraso</small></div>
+            <div><span className="label">FILTRO</span><strong>{events.length}</strong><small>{selectedLabel}</small></div>
+          </div>
+        </article>
+        <article className="panel pipeline-radar-card">
+          <div className="workspace-card-top"><div><span className="label">SLA RADAR</span><h3 className="card-title">Pontos de atenção</h3></div><span className="prototype-badge">tempo real</span></div>
+          <div className="pipeline-radar-donut" style={{ ["--radar" as string]: `${Math.min(100, Math.max(12, Math.round((sensitive / Math.max(total, 1)) * 100)))}%` } as React.CSSProperties}>
+            <div><strong>{sensitive}</strong><span>itens críticos</span></div>
+          </div>
+        </article>
       </section>
 
-      <section className="panel table-panel">
+      <section className="panel pipeline-stage-board">
+        <div className="workspace-section-head">
+          <div><h2 className="section-title">Etapas da operação</h2><p className="description">Selecione uma etapa para filtrar a fila sem perder contexto.</p></div>
+          {selectedStage !== "Todos" ? <button className="text-link" onClick={onReset}>Limpar filtro <Icon name="close" size={14}/></button> : null}
+        </div>
+        <div className="pipeline-stage-strip">
+          {stageMeta.map((stage) => (
+            <button key={stage.key} className={`pipeline-stage-tile ${selectedStage === stage.key ? "active" : ""}`} onClick={() => onSelectStage(stage.key)}>
+              <span className="caption">{stage.helper}</span>
+              <strong>{counts[stage.key]}</strong>
+              <span className="pipeline-stage-label">{stage.label}</span>
+              <small>{attentions[stage.key] ? `${attentions[stage.key]} atenção` : "fluxo normal"}</small>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="panel table-panel pipeline-table-panel">
         <div className="table-toolbar">
-          <div>
-            <h2 className="section-title">Fila operacional</h2>
-            <p className="description">{selectedStage === "Todos" ? "Todos os eventos" : stageMeta.find((stage) => stage.key === selectedStage)?.label} · {events.length} registros</p>
-          </div>
+          <div><span className="eyebrow">FILA OPERACIONAL</span><h2 className="section-title">{selectedLabel}</h2><p className="description">{events.length} registros ordenados para consulta e ação.</p></div>
           <div className="toolbar-actions">
             <label className="search-field"><Icon name="search" size={15}/><input value={query} onChange={(event) => onQuery(event.target.value)} placeholder="Buscar evento, placa ou associado"/></label>
             <button className="icon-button" aria-label="Limpar filtros" onClick={onReset}><Icon name="filter" size={16}/></button>
@@ -796,7 +996,7 @@ function EventTable({ events, onEvent }: { events: EventItem[]; onEvent: (event:
               <td data-label="SLA"><StatusChip type={event.sla === "Atrasado" ? "danger" : event.sla === "Risco" ? "warning" : "success"}>{event.sla}</StatusChip></td>
               <td data-label="Responsável">{event.owner}</td>
               <td data-label="Atualização"><span className="caption">{event.updated}</span></td>
-              <td><button className="icon-button icon-button-plain" aria-label={`Abrir ${event.id}`} onClick={(clickEvent) => { clickEvent.stopPropagation(); onEvent(event); }}><Icon name="chevron" size={15}/></button></td>
+              <td><button className="icon-button icon-button-plain" aria-label={`Abrir ${event.id}`} onClick={(clickEvent: MouseEvent<HTMLButtonElement>) => { clickEvent.stopPropagation(); onEvent(event); }}><Icon name="chevron" size={15}/></button></td>
             </tr>
           ))}
         </tbody>
@@ -807,27 +1007,41 @@ function EventTable({ events, onEvent }: { events: EventItem[]; onEvent: (event:
 }
 
 function AssociatesView({ associates, onNew, onAction }: { associates: AssociateItem[]; onNew: () => void; onAction: (message: string) => void }) {
+  const featured = associates[0];
+  const active = associates.filter((item) => item.status === "Ativo").length;
+  const pending = associates.filter((item) => item.status === "Pendente").length;
   return (
-    <div>
-      <section className="summary-strip">
-        <div><span className="label">BASE TOTAL</span><strong>{associates.length}</strong><small>registros disponíveis</small></div>
-        <div><span className="label">ATIVOS</span><strong>{associates.filter((item) => item.status === "Ativo").length}</strong><small>cadastros regulares</small></div>
-        <div><span className="label">PENDENTES</span><strong>{associates.filter((item) => item.status === "Pendente").length}</strong><small>precisam de revisão</small></div>
+    <div className="workspace-view associates-workspace">
+      <section className="workspace-bento associates-bento">
+        <article className="panel associates-feature-card">
+          <div className="workspace-card-top"><div><span className="label">CADASTRO EM FOCO</span><h3 className="card-title">Associado acompanhado</h3></div><button className="icon-button icon-button-plain" onClick={onNew} aria-label="Novo associado"><Icon name="userPlus" size={16}/></button></div>
+          <div className="associates-feature-photo"><img src="/member-main.jpg" alt="Associado em destaque"/><div><strong>{featured?.name || "Marina Costa"}</strong><small>{featured?.vehicle || "Jeep Compass"} · {featured?.plate || "RTA-8D21"}</small></div></div>
+          <div className="associates-feature-meta"><span><Icon name="pin" size={14}/>{featured?.city || "São Paulo, SP"}</span><span><Icon name="phone" size={14}/>{featured?.phone || "(11) 99942-3810"}</span></div>
+        </article>
+        <article className="panel associates-kpi-card associates-kpi-wide">
+          <div className="workspace-card-top"><div><span className="label">BASE OPERACIONAL</span><h3 className="card-title">Saúde cadastral</h3></div><span className="prototype-badge">sincronizado</span></div>
+          <div className="associates-kpi-grid">
+            <div><strong>{associates.length}</strong><span>Total da base</span><small>registros disponíveis</small></div>
+            <div><strong>{active}</strong><span>Ativos</span><small>cadastros regulares</small></div>
+            <div><strong>{pending}</strong><span>Pendentes</span><small>precisam de revisão</small></div>
+            <div><strong>{Math.max(0, associates.length - active - pending)}</strong><span>Inativos</span><small>fora do fluxo atual</small></div>
+          </div>
+          <div className="associates-health-bar"><i style={{ width: `${associates.length ? Math.round((active / associates.length) * 100) : 0}%` }}/></div>
+        </article>
+        <article className="panel associates-action-card">
+          <div><span className="eyebrow">AÇÃO RÁPIDA</span><h3 className="section-title">Cadastre sem interromper a operação.</h3><p className="description">O novo associado entra na base e já fica disponível para abertura de evento.</p></div>
+          <button className="button button-yellow" onClick={onNew}><Icon name="userPlus" size={15}/>Cadastrar associado</button>
+        </article>
       </section>
-      <section className="panel table-panel">
-        <div className="table-toolbar">
-          <div><h2 className="section-title">Base de associados</h2><p className="description">Novos registros aparecem aqui assim que são salvos.</p></div>
-          <button className="button button-dark" onClick={onNew}><Icon name="userPlus" size={15}/>Cadastrar associado</button>
-        </div>
-        <div className="associate-grid">
-          {associates.map((item) => (
-            <article className="associate-card" key={item.id}>
-              <div className="associate-card-head"><span className="associate-avatar">{item.name.split(" ").slice(0,2).map((word) => word[0]).join("")}</span><StatusChip type={item.status === "Ativo" ? "success" : item.status === "Pendente" ? "warning" : "neutral"}>{item.status}</StatusChip></div>
+
+      <section className="panel associates-list-panel">
+        <div className="workspace-section-head"><div><h2 className="section-title">Base de associados</h2><p className="description">Cards compactos, mesma altura e leitura rápida em qualquer tela.</p></div><button className="button button-dark" onClick={onNew}><Icon name="plus" size={14}/>Novo cadastro</button></div>
+        <div className="associate-grid associate-grid-prototype">
+          {associates.map((item, index) => (
+            <article className={`associate-card associate-card-prototype ${index === 0 ? "featured" : ""}`} key={item.id}>
+              <div className="associate-card-head"><span className="associate-avatar">{index === 0 ? <img src="/member-avatar.jpg" alt=""/> : item.name.split(" ").slice(0,2).map((word) => word[0]).join("")}</span><StatusChip type={item.status === "Ativo" ? "success" : item.status === "Pendente" ? "warning" : "neutral"}>{item.status}</StatusChip></div>
               <div><h3 className="card-title">{item.name}</h3><p className="description">{item.id} · {item.cpf}</p></div>
-              <div className="associate-meta">
-                <span><Icon name="car" size={14}/><span><strong>{item.vehicle}</strong><small>{item.plate}</small></span></span>
-                <span><Icon name="pin" size={14}/><span><strong>{item.city}</strong><small>{item.updated}</small></span></span>
-              </div>
+              <div className="associate-meta"><span><Icon name="car" size={14}/><span><strong>{item.vehicle}</strong><small>{item.plate}</small></span></span><span><Icon name="pin" size={14}/><span><strong>{item.city}</strong><small>{item.updated}</small></span></span></div>
               <div className="associate-card-foot"><span className="caption">{item.phone}</span><button className="icon-button icon-button-plain" aria-label="Abrir cadastro" onClick={() => onAction(`Cadastro de ${item.name} selecionado.`)}><Icon name="arrow" size={15}/></button></div>
             </article>
           ))}
@@ -838,22 +1052,23 @@ function AssociatesView({ associates, onNew, onAction }: { associates: Associate
 }
 
 function ProvidersView({ onAction }: { onAction: (message: string) => void }) {
+  const average = Math.round(providers.reduce((sum, item) => sum + item.load, 0) / providers.length);
+  const best = [...providers].sort((a,b) => a.load - b.load)[0];
   return (
-    <div>
-      <section className="summary-strip">
-        <div><span className="label">PRESTADORES</span><strong>{providers.length}</strong><small>visíveis no painel</small></div>
-        <div><span className="label">OCUPAÇÃO MÉDIA</span><strong>54%</strong><small>capacidade da rede</small></div>
-        <div><span className="label">MELHOR PRAZO</span><strong>Hoje</strong><small>vistoria disponível</small></div>
+    <div className="workspace-view providers-workspace">
+      <section className="workspace-bento providers-bento">
+        <article className="panel workspace-hero-card providers-hero-card"><div className="workspace-hero-copy"><span className="eyebrow">REDE CREDENCIADA</span><h2 className="workspace-display-title">Distribua pela combinação certa de prazo e capacidade.</h2><p className="description">A rede aparece como uma decisão operacional, não como uma lista solta de prestadores.</p></div><div className="workspace-hero-metrics"><div><span className="label">REDE</span><strong>{providers.length}</strong><small>prestadores ativos</small></div><div><span className="label">OCUPAÇÃO</span><strong>{average}%</strong><small>média agora</small></div><div><span className="label">MELHOR PRAZO</span><strong>{best.eta}</strong><small>{best.name}</small></div></div></article>
+        <article className="panel providers-capacity-card"><div className="workspace-card-top"><div><span className="label">CAPACIDADE</span><h3 className="card-title">Distribuição atual</h3></div><Icon name="network" size={18}/></div><div className="providers-capacity-ring" style={{ ["--capacity" as string]: `${average}%` } as React.CSSProperties}><div><strong>{average}%</strong><span>ocupação média</span></div></div></article>
       </section>
-      <section className="provider-grid">
-        {providers.map((provider) => (
-          <article className="panel provider-card" key={provider.name}>
-            <div className="provider-head"><span className="provider-icon"><Icon name="building" size={18}/></span><button className="icon-button icon-button-plain" aria-label="Mais opções" onClick={() => onAction(`${provider.name}: capacidade ${provider.load}% e prazo ${provider.eta}.`)}><Icon name="more" size={17}/></button></div>
+      <section className="provider-grid provider-grid-prototype">
+        {providers.map((provider, index) => (
+          <article className={`panel provider-card provider-card-prototype ${index === 0 ? "provider-featured" : ""}`} key={provider.name}>
+            <div className="provider-head"><span className="provider-icon"><Icon name="building" size={18}/></span><span className="prototype-badge">{provider.eta}</span></div>
             <div><h3 className="card-title">{provider.name}</h3><p className="description">{provider.specialty}</p></div>
             <div className="provider-location"><Icon name="pin" size={14}/><span className="caption">{provider.city}</span></div>
             <div className="capacity-block"><div><span className="label">CAPACIDADE</span><strong>{provider.load}%</strong></div><div className="progress-track compact"><i style={{ width: `${provider.load}%` }}/></div></div>
             <div className="provider-stats"><span><small>Prazo</small><strong>{provider.eta}</strong></span><span><small>Nota</small><strong>{provider.score}</strong></span><span><small>Em curso</small><strong>{provider.jobs}</strong></span></div>
-            <button className="button button-light" onClick={() => onAction(`${provider.name} selecionado para consulta.`)}>Ver prestador <Icon name="arrow" size={14}/></button>
+            <button className="button button-light" onClick={() => onAction(`${provider.name}: capacidade ${provider.load}% e prazo ${provider.eta}.`)}>Ver prestador <Icon name="arrow" size={14}/></button>
           </article>
         ))}
       </section>
@@ -862,49 +1077,51 @@ function ProvidersView({ onAction }: { onAction: (message: string) => void }) {
 }
 
 function DocumentsView({ onRoutine, onAction }: { onRoutine: (action: string) => void; onAction: (message: string) => void }) {
+  const pending = documents.filter((item) => item.status === "Pendente" || item.status === "Atrasado").length;
+  const received = documents.filter((item) => item.status === "Recebido").length;
   return (
-    <div className="documents-layout">
-      <section className="panel table-panel">
-        <PanelHeader title="Pendências documentais" description="Itens que precisam de validação, cobrança ou conferência." action={<button className="button button-dark" onClick={() => onRoutine("Cobrar documentos pendentes")}><Icon name="send" size={14}/>Cobrar pendências</button>}/>
-        <div className="document-list">
-          {documents.map((doc) => (
-            <div className="document-row" key={`${doc.event}-${doc.item}`}>
-              <span className="document-icon"><Icon name="file" size={17}/></span>
-              <span><strong>{doc.item}</strong><small>{doc.event} · {doc.associate}</small></span>
-              <span className="caption">{doc.age}</span>
-              <StatusChip type={doc.status === "Atrasado" ? "danger" : doc.status === "Pendente" ? "warning" : doc.status === "Recebido" ? "success" : "neutral"}>{doc.status}</StatusChip>
-              <button className="icon-button icon-button-plain" aria-label="Abrir documento" onClick={() => onAction(`${doc.item} de ${doc.event} selecionado.`)}><Icon name="chevron" size={15}/></button>
-            </div>
-          ))}
-        </div>
+    <div className="workspace-view documents-workspace">
+      <section className="workspace-bento documents-bento">
+        <article className="panel documents-hero-card"><div><span className="eyebrow">DOCUMENTAÇÃO OPERACIONAL</span><h2 className="workspace-display-title">Pendência visível. Cobrança simples.</h2><p className="description">O painel separa o que precisa de cobrança, conferência e decisão, sem abrir planilhas paralelas.</p></div><button className="button button-dark" onClick={() => onRoutine("Cobrar documentos pendentes")}><Icon name="send" size={14}/>Cobrar pendências</button></article>
+        <article className="panel documents-score-card"><span className="label">COMPLETUDE</span><div className="documents-score"><strong>86%</strong><span>média da base</span></div><div className="progress-track"><i style={{ width: "86%" }}/></div></article>
+        <article className="panel documents-mini-card"><span className="label">PENDÊNCIAS</span><strong>{pending}</strong><small>exigem retorno</small></article>
+        <article className="panel documents-mini-card documents-mini-yellow"><span className="label">RECEBIDOS</span><strong>{received}</strong><small>prontos para seguir</small></article>
       </section>
-      <aside className="panel document-summary">
-        <PanelHeader title="Resumo" description="Situação da documentação hoje."/>
-        <div className="document-kpis">
-          <div><span className="metric-value">12</span><span className="metric-label">Pendências</span><span className="caption">aguardando envio</span></div>
-          <div><span className="metric-value">4</span><span className="metric-label">Em análise</span><span className="caption">na fila interna</span></div>
-          <div><span className="metric-value">86%</span><span className="metric-label">Completude</span><span className="caption">média da base</span></div>
-        </div>
-      </aside>
+      <section className="panel documents-list-panel"><div className="workspace-section-head"><div><h2 className="section-title">Fila documental</h2><p className="description">Mesma altura, status claro e ação direta em cada linha.</p></div><span className="prototype-badge">{documents.length} documentos</span></div><div className="document-list document-list-prototype">{documents.map((doc) => (<button className="document-row document-row-prototype" key={`${doc.event}-${doc.item}`} onClick={() => onAction(`${doc.item} de ${doc.event} selecionado.`)}><span className="document-icon"><Icon name="file" size={17}/></span><span><strong>{doc.item}</strong><small>{doc.event} · {doc.associate}</small></span><span className="caption">{doc.age}</span><StatusChip type={doc.status === "Atrasado" ? "danger" : doc.status === "Pendente" ? "warning" : doc.status === "Recebido" ? "success" : "neutral"}>{doc.status}</StatusChip><Icon name="chevron" size={15}/></button>))}</div></section>
     </div>
   );
 }
 
 function RoutinesView({ onRoutine, onAssistant }: { onRoutine: (action: string) => void; onAssistant: () => void }) {
+  const primary = routines.slice(0, 4);
+  const secondary = routines.slice(4);
   return (
-    <div>
-      <section className="routine-intro panel">
-        <div><span className="eyebrow">TRABALHO OPERACIONAL, SIMPLIFICADO</span><h2 className="section-title">O painel executa o trabalho repetitivo sem esconder o controle.</h2><p className="description">Cada rotina deixa claro o que será feito antes da execução.</p></div>
-        <button className="button button-dark" onClick={onAssistant}><Icon name="command" size={15}/>Pedir outra ação</button>
+    <div className="workspace-view routines-workspace-v2">
+      <section className="routines-dashboard-grid">
+        <article className="panel routines-list-card">
+          <div className="workspace-card-top"><div><span className="label">AÇÕES RÁPIDAS</span><h3 className="card-title">Rotinas recorrentes</h3><p className="description">Execução direta, sem blocos gigantes.</p></div><span className="prototype-badge">1 clique</span></div>
+          <div className="routines-list-v2">{primary.map((routine) => (<button key={routine.title} onClick={() => onRoutine(routine.action)}><span className="quick-icon"><Icon name={routine.icon} size={16}/></span><span><strong>{routine.title}</strong><small>{routine.description}</small></span><Icon name="arrow" size={14}/></button>))}</div>
+        </article>
+
+        <article className="routines-agent-card">
+          <div className="routines-agent-top"><span className="assistant-mark"><Icon name="command" size={19}/></span><span className="agent-online"><i/>Online</span></div>
+          <div className="routines-agent-copy"><span className="eyebrow eyebrow-light">AGENTE VELOCE</span><h2>Seu copiloto operacional.</h2><p>Peça para cobrar, revisar, mover, gerar um resumo ou abrir um cadastro sem trocar de tela.</p></div>
+          <div className="routines-agent-prompts"><button onClick={onAssistant}><span>Quais SLAs estão em risco?</span><Icon name="arrow" size={14}/></button><button onClick={onAssistant}><span>Resumo de pendências críticas</span><Icon name="arrow" size={14}/></button></div>
+          <button className="button button-yellow routines-agent-cta" onClick={onAssistant}><Icon name="command" size={15}/>Abrir agente</button>
+        </article>
+
+        <article className="panel routines-check-card">
+          <div className="workspace-card-top"><div><span className="label">CHECKLIST</span><h3 className="card-title">Próximas automações</h3></div><strong className="routines-count">2/6</strong></div>
+          <div className="routines-progress"><i/></div>
+          <div className="routines-check-list">{routines.map((routine, index) => (<button key={routine.title} onClick={() => onRoutine(routine.action)}><span className={`routines-check-icon ${index < 2 ? "done" : ""}`}>{index < 2 ? <Icon name="check" size={13}/> : <Icon name={routine.icon} size={13}/>}</span><span><strong>{routine.title}</strong><small>{index < 2 ? "Rotina revisada" : "Disponível para executar"}</small></span><Icon name="chevron" size={13}/></button>))}</div>
+        </article>
       </section>
-      <section className="routine-grid">
-        {routines.map((routine) => (
-          <button className={`routine-card ${routine.accent ? "routine-card-accent" : ""}`} key={routine.title} onClick={() => onRoutine(routine.action)}>
-            <span className="routine-icon"><Icon name={routine.icon} size={19}/></span>
-            <span className="routine-copy"><strong className="card-title">{routine.title}</strong><small className="description">{routine.description}</small></span>
-            <span className="routine-arrow"><Icon name="arrow" size={15}/></span>
-          </button>
-        ))}
+
+      <section className="panel routines-bottom-strip">
+        <div><span className="label">AUTOMAÇÕES HOJE</span><strong>18</strong><small>execuções registradas</small></div>
+        <div><span className="label">TEMPO POUPADO</span><strong>3.4h</strong><small>estimativa operacional</small></div>
+        <div><span className="label">SEM INTERVENÇÃO</span><strong>82%</strong><small>fluxos concluídos</small></div>
+        {secondary.map((routine) => (<button key={routine.title} onClick={() => onRoutine(routine.action)}><span className="quick-icon"><Icon name={routine.icon} size={16}/></span><span><strong>{routine.title}</strong><small>{routine.description}</small></span><Icon name="arrow" size={14}/></button>))}
       </section>
     </div>
   );
@@ -923,59 +1140,30 @@ function AssistantView({ messages, input, onInput, onSend, busy, onRoutine, acti
   associates: number;
 }) {
   function submit(event: FormEvent) { event.preventDefault(); onSend(input); }
+  const actions: Array<[string, string, IconName, string]> = [
+    ["Cadastrar associado", "Abre o cadastro e atualiza a base", "userPlus", "Cadastrar novo associado"],
+    ["Cobrar documentos", "Organiza as pendências para ação", "documentCheck", "Cobrar documentos pendentes"],
+    ["Revisar SLA", "Prioriza risco e atraso", "clock", "Revisar SLAs críticos"],
+    ["Gerar relatório", "Consolida a operação atual", "report", "Gerar relatório operacional"],
+  ];
   return (
-    <div className="assistant-page">
-      <section className="assistant-hero panel">
-        <div className="assistant-hero-main"><span className="assistant-mark"><Icon name="command" size={20}/></span><div><span className="eyebrow">COMANDO OPERACIONAL</span><h2 className="section-title">Peça. O painel executa.</h2><p className="description">Consulte o contexto e execute tarefas operacionais sem alternar entre telas.</p></div></div>
-        <div className="assistant-context"><span className="status-dot"/><div><span className="label">CONTEXTO</span><strong>Contexto pronto</strong><small>eventos · associados · documentos · rede</small></div></div>
+    <div className="workspace-view assistant-workspace-v2">
+      <section className="assistant-command-grid">
+        <article className="assistant-command-hero">
+          <div className="assistant-command-top"><span className="assistant-mark"><Icon name="command" size={20}/></span><StatusChip type="success">Contexto sincronizado</StatusChip></div>
+          <div className="assistant-command-copy"><span className="eyebrow eyebrow-light">AGENTE OPERACIONAL</span><h2>Converse com a operação.</h2><p>O agente consulta o contexto, executa comandos locais e usa a automação externa quando ela estiver configurada.</p></div>
+          <div className="assistant-command-kpis"><div><strong>{activeCount}</strong><span>eventos ativos</span></div><div><strong>{riskCount}</strong><span>em risco</span></div><div><strong>{overdueCount}</strong><span>atrasados</span></div><div><strong>{associates}</strong><span>associados</span></div></div>
+        </article>
+        <article className="panel assistant-operator-card"><div className="assistant-operator-photo"><img src="/member-main.jpg" alt="Operação Veloce"/></div><div><span className="label">CONTEXTO HUMANO</span><h3 className="card-title">Operação + IA, sem perder controle.</h3><p className="description">A experiência mantém decisões importantes visíveis e acionáveis.</p></div></article>
       </section>
 
-      <section className="assistant-layout">
-        <article className="panel chat-panel">
-          <div className="chat-topbar"><div><h2 className="section-title">Conversa operacional</h2><p className="description">Comandos objetivos, resultado registrado na mesma sessão.</p></div><StatusChip type="success">Online</StatusChip></div>
-          <div className="chat-messages">
-            {messages.map((message) => (
-              <div className={`chat-message ${message.role}`} key={message.id}>
-                <span className="chat-role">{message.role === "assistant" ? <Icon name="command" size={14}/> : "Você"}</span>
-                <p>{message.text}</p>
-              </div>
-            ))}
-            {busy ? <div className="chat-message assistant"><span className="chat-role"><Icon name="refresh" size={14}/></span><p className="typing">Processando solicitação</p></div> : null}
-          </div>
-          <form className="chat-form" onSubmit={submit}>
-            <div className="chat-input-wrap"><Icon name="message" size={16}/><input value={input} onChange={(event) => onInput(event.target.value)} placeholder="Ex.: mover EV-2848 para Vistoria"/></div>
-            <button className="button button-dark" type="submit" disabled={!input.trim() || busy}><Icon name="send" size={14}/>Enviar</button>
-          </form>
+      <section className="assistant-layout assistant-layout-v2">
+        <article className="panel chat-panel chat-panel-v2">
+          <div className="chat-topbar"><div><span className="eyebrow">CONVERSA OPERACIONAL</span><h2 className="section-title">Comando em linguagem natural</h2><p className="description">Ex.: “mover EV-2848 para Vistoria” ou “gerar relatório operacional”.</p></div><StatusChip type="success">Online</StatusChip></div>
+          <div className="chat-messages">{messages.map((message) => (<div className={`chat-message ${message.role}`} key={message.id}><span className="chat-role">{message.role === "assistant" ? <Icon name="command" size={14}/> : "Você"}</span><p>{message.text}</p></div>))}{busy ? <div className="chat-message assistant"><span className="chat-role"><Icon name="refresh" size={14}/></span><p className="typing">Processando solicitação</p></div> : null}</div>
+          <form className="chat-form" onSubmit={submit}><div className="chat-input-wrap"><Icon name="message" size={16}/><input value={input} onChange={(event) => onInput(event.target.value)} placeholder="Digite uma ação ou pergunta operacional"/></div><button className="button button-yellow" type="submit" disabled={!input.trim() || busy}><Icon name="send" size={14}/>Executar</button></form>
         </article>
-
-        <aside className="assistant-side">
-          <section className="panel agent-actions-card">
-            <PanelHeader title="Ações disponíveis" description="Execução imediata para rotinas frequentes."/>
-            <div className="agent-actions">
-              {[
-                ["Cadastrar associado", "Abre o cadastro e atualiza a base", "userPlus", "Cadastrar novo associado"],
-                ["Cobrar documentos", "Organiza as pendências para ação", "documentCheck", "Cobrar documentos pendentes"],
-                ["Revisar SLA", "Prioriza risco e atraso", "clock", "Revisar SLAs críticos"],
-                ["Gerar relatório", "Consolida a operação atual", "report", "Gerar relatório operacional"],
-              ].map(([title, detail, icon, action]) => (
-                <button className="agent-action" key={title} onClick={() => onRoutine(action)}>
-                  <span className="agent-action-icon"><Icon name={icon as IconName} size={16}/></span>
-                  <span><strong>{title}</strong><small>{detail}</small></span>
-                  <Icon name="chevron" size={14}/>
-                </button>
-              ))}
-            </div>
-          </section>
-          <section className="panel agent-context-card">
-            <PanelHeader title="Contexto carregado" description="Números usados durante a conversa."/>
-            <div className="agent-context-grid">
-              <div><strong>{activeCount}</strong><span>Eventos ativos</span></div>
-              <div><strong>{riskCount}</strong><span>Em risco</span></div>
-              <div><strong>{overdueCount}</strong><span>Atrasados</span></div>
-              <div><strong>{associates}</strong><span>Associados</span></div>
-            </div>
-          </section>
-        </aside>
+        <aside className="assistant-side assistant-side-v2"><section className="panel agent-actions-card"><PanelHeader title="Ações disponíveis" description="Atalhos para comandos recorrentes."/><div className="agent-actions">{actions.map(([title, detail, icon, action]) => (<button className="agent-action" key={title} onClick={() => onRoutine(action)}><span className="agent-action-icon"><Icon name={icon} size={16}/></span><span><strong>{title}</strong><small>{detail}</small></span><Icon name="chevron" size={14}/></button>))}</div></section></aside>
       </section>
     </div>
   );
@@ -983,7 +1171,7 @@ function AssistantView({ messages, input, onInput, onSend, busy, onRoutine, acti
 
 function EventDrawer({ event, onClose, onMove }: { event: EventItem; onClose: () => void; onMove: (id: string, stage: Stage) => void }) {
   return (
-    <div className="overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="overlay" onMouseDown={(e: MouseEvent<HTMLDivElement>) => { if (e.target === e.currentTarget) onClose(); }}>
       <aside className="drawer">
         <div className="drawer-head"><div><span className="eyebrow">DETALHE DO EVENTO</span><h2 className="section-title">{event.id}</h2><p className="description">{event.associate} · {event.vehicle}</p></div><button className="icon-button" onClick={onClose} aria-label="Fechar"><Icon name="close" size={17}/></button></div>
         <div className="drawer-status"><StatusChip type={event.sla === "Atrasado" ? "danger" : event.sla === "Risco" ? "warning" : "success"}>{event.sla}</StatusChip><span className="plain-chip">{stageMeta.find((stage) => stage.key === event.stage)?.label}</span></div>
@@ -1004,7 +1192,7 @@ function AssociateModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: 
   const [form, setForm] = useState({ name: "", cpf: "", phone: "", email: "", vehicle: "", plate: "", city: "", status: "Ativo" as AssociateStatus });
   function submit(event: FormEvent) { event.preventDefault(); if (!form.name.trim() || !form.plate.trim()) return; onSubmit(form); }
   return (
-    <div className="overlay modal-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="overlay modal-overlay" onMouseDown={(e: MouseEvent<HTMLDivElement>) => { if (e.target === e.currentTarget) onClose(); }}>
       <form className="modal" onSubmit={submit}>
         <div className="modal-head"><div><span className="eyebrow">NOVO CADASTRO</span><h2 className="section-title">Cadastrar associado</h2><p className="description">O registro entra na base assim que você salvar.</p></div><button className="icon-button" type="button" onClick={onClose}><Icon name="close" size={17}/></button></div>
         <div className="form-grid">
@@ -1015,7 +1203,7 @@ function AssociateModal({ onClose, onSubmit }: { onClose: () => void; onSubmit: 
           <Field label="Veículo" value={form.vehicle} onChange={(value) => setForm({ ...form, vehicle: value })}/>
           <Field label="Placa" value={form.plate} onChange={(value) => setForm({ ...form, plate: value.toUpperCase() })} required/>
           <Field label="Cidade / UF" value={form.city} onChange={(value) => setForm({ ...form, city: value })}/>
-          <label className="field"><span className="label">Status</span><select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as AssociateStatus })}><option>Ativo</option><option>Pendente</option><option>Inativo</option></select></label>
+          <label className="field"><span className="label">Status</span><select value={form.status} onChange={(event: ChangeEvent<HTMLSelectElement>) => setForm({ ...form, status: event.target.value as AssociateStatus })}><option>Ativo</option><option>Pendente</option><option>Inativo</option></select></label>
         </div>
         <div className="modal-actions"><button className="button button-light" type="button" onClick={onClose}>Cancelar</button><button className="button button-dark" type="submit">Salvar associado</button></div>
       </form>
@@ -1028,15 +1216,15 @@ function EventModal({ associates, onClose, onSubmit }: { associates: AssociateIt
   function pickAssociate(name: string) { const item = associates.find((associate) => associate.name === name); setForm({ ...form, associate: name, vehicle: item?.vehicle || "", plate: item?.plate || "", city: item?.city || "" }); }
   function submit(event: FormEvent) { event.preventDefault(); if (!form.associate.trim()) return; onSubmit(form); }
   return (
-    <div className="overlay modal-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="overlay modal-overlay" onMouseDown={(e: MouseEvent<HTMLDivElement>) => { if (e.target === e.currentTarget) onClose(); }}>
       <form className="modal" onSubmit={submit}>
         <div className="modal-head"><div><span className="eyebrow">NOVA OPERAÇÃO</span><h2 className="section-title">Criar evento</h2><p className="description">O evento entra na esteira imediatamente após salvar.</p></div><button className="icon-button" type="button" onClick={onClose}><Icon name="close" size={17}/></button></div>
         <div className="form-grid">
-          <label className="field field-span-2"><span className="label">Associado</span><select value={form.associate} onChange={(event) => pickAssociate(event.target.value)}>{associates.map((associate) => <option key={associate.id}>{associate.name}</option>)}</select></label>
+          <label className="field field-span-2"><span className="label">Associado</span><select value={form.associate} onChange={(event: ChangeEvent<HTMLSelectElement>) => pickAssociate(event.target.value)}>{associates.map((associate) => <option key={associate.id}>{associate.name}</option>)}</select></label>
           <Field label="Veículo" value={form.vehicle} onChange={(value) => setForm({ ...form, vehicle: value })}/>
           <Field label="Placa" value={form.plate} onChange={(value) => setForm({ ...form, plate: value.toUpperCase() })}/>
           <Field label="Cidade / UF" value={form.city} onChange={(value) => setForm({ ...form, city: value })}/>
-          <label className="field"><span className="label">Responsável</span><select value={form.owner} onChange={(event) => setForm({ ...form, owner: event.target.value })}><option>Nina</option><option>Larissa</option><option>André</option></select></label>
+          <label className="field"><span className="label">Responsável</span><select value={form.owner} onChange={(event: ChangeEvent<HTMLSelectElement>) => setForm({ ...form, owner: event.target.value })}><option>Nina</option><option>Larissa</option><option>André</option></select></label>
         </div>
         <div className="modal-actions"><button className="button button-light" type="button" onClick={onClose}>Cancelar</button><button className="button button-dark" type="submit">Criar evento</button></div>
       </form>
@@ -1045,14 +1233,14 @@ function EventModal({ associates, onClose, onSubmit }: { associates: AssociateIt
 }
 
 function Field({ label, value, onChange, required }: { label: string; value: string; onChange: (value: string) => void; required?: boolean }) {
-  return <label className="field"><span className="label">{label}</span><input value={value} onChange={(event) => onChange(event.target.value)} required={required}/></label>;
+  return <label className="field"><span className="label">{label}</span><input value={value} onChange={(event: ChangeEvent<HTMLInputElement>) => onChange(event.target.value)} required={required}/></label>;
 }
 
 function SearchDialog({ query, onQuery, results, onClose, inputRef }: { query: string; onQuery: (value: string) => void; results: Array<{ kind: string; title: string; detail: string; icon: IconName; action: () => void }>; onClose: () => void; inputRef: React.RefObject<HTMLInputElement | null> }) {
   return (
-    <div className="overlay search-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="overlay search-overlay" onMouseDown={(e: MouseEvent<HTMLDivElement>) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="search-dialog">
-        <div className="search-dialog-input"><Icon name="search" size={18}/><input ref={inputRef} value={query} onChange={(event) => onQuery(event.target.value)} placeholder="Buscar evento, associado ou placa"/><button onClick={onClose}>ESC</button></div>
+        <div className="search-dialog-input"><Icon name="search" size={18}/><input ref={inputRef} value={query} onChange={(event: ChangeEvent<HTMLInputElement>) => onQuery(event.target.value)} placeholder="Buscar evento, associado ou placa"/><button onClick={onClose}>ESC</button></div>
         <div className="search-results">
           {!query ? <div className="search-empty"><Icon name="command" size={20}/><h3 className="card-title">Busca rápida</h3><p className="description">Digite um nome, placa ou identificador.</p></div> : null}
           {query && results.length === 0 ? <div className="search-empty"><Icon name="search" size={20}/><h3 className="card-title">Nenhum resultado</h3><p className="description">Tente outro termo.</p></div> : null}
