@@ -721,8 +721,17 @@ function DashboardView({
               <img src="/member-main.jpg" alt="Associada em destaque" />
               <span className="prototype-member-overlay">
                 <strong>{spotlight?.name || "Marina Costa"}</strong>
-                <small>{spotlight?.vehicle || "Jeep Compass"} · {spotlight?.plate || "RTA-8D21"}</small>
+                <small>Associada em acompanhamento</small>
               </span>
+            </button>
+            <button className="prototype-vehicle-card" onClick={() => onNavigate("Esteira")} aria-label="Abrir evento do veículo">
+              <img src="https://images.unsplash.com/photo-1629373373535-b5e644663c32?auto=format&fit=crop&w=900&q=82" alt="Jeep Compass em acompanhamento" />
+              <span className="prototype-vehicle-copy">
+                <small>VEÍCULO</small>
+                <strong>{spotlight?.vehicle || "Jeep Compass"}</strong>
+                <span>{spotlight?.plate || "RTA-8D21"} · São Paulo, SP</span>
+              </span>
+              <span className="prototype-vehicle-arrow"><Icon name="arrow" size={14}/></span>
             </button>
             <div className="prototype-member-links">
               <button onClick={() => onNavigate("Associados")}><span>Dados cadastrais</span><Icon name="chevron" size={14}/></button>
@@ -817,18 +826,19 @@ function DashboardView({
                 <button className="icon-button icon-button-plain" aria-label="Abrir esteira" onClick={() => onNavigate("Esteira")}><Icon name="calendar" size={15}/></button>
               </div>
             </div>
-            <div className="prototype-calendar-grid">
+            <div className="prototype-calendar-grid prototype-calendar-grid-v2">
               {agendaItems.map((item) => (
-                <div key={item.time} className="prototype-agenda-row">
-                  <span className="prototype-agenda-time">{item.time}</span>
-                  <div className={`prototype-agenda-card prototype-agenda-${item.accent}`}>
-                    <strong>{item.title}</strong>
-                    <small>{item.detail}</small>
-                    <div className="prototype-agenda-chips">
+                <button key={item.time} className={`prototype-agenda-entry prototype-agenda-${item.accent}`} onClick={() => onNavigate("Esteira")}>
+                  <span className="prototype-agenda-entry-top">
+                    <span className="prototype-agenda-time">{item.time}</span>
+                    <span className="prototype-agenda-tags">
                       {item.chips.map((chip) => <span key={chip}>{chip}</span>)}
-                    </div>
-                  </div>
-                </div>
+                    </span>
+                  </span>
+                  <strong>{item.title}</strong>
+                  <small>{item.detail}</small>
+                  <span className="prototype-agenda-entry-foot">Ver na esteira <Icon name="arrow" size={12}/></span>
+                </button>
               ))}
             </div>
           </article>
@@ -1094,7 +1104,7 @@ function RoutinesView({ onRoutine, onAssistant }: { onRoutine: (action: string) 
         </article>
 
         <article className="routines-agent-card">
-          <div className="routines-agent-top"><span className="assistant-mark"><Icon name="command" size={19}/></span><StatusChip type="success">Online</StatusChip></div>
+          <div className="routines-agent-top"><span className="assistant-mark"><Icon name="command" size={19}/></span><span className="agent-online"><i/>Online</span></div>
           <div className="routines-agent-copy"><span className="eyebrow eyebrow-light">AGENTE VELOCE</span><h2>Seu copiloto operacional.</h2><p>Peça para cobrar, revisar, mover, gerar um resumo ou abrir um cadastro sem trocar de tela.</p></div>
           <div className="routines-agent-prompts"><button onClick={onAssistant}><span>Quais SLAs estão em risco?</span><Icon name="arrow" size={14}/></button><button onClick={onAssistant}><span>Resumo de pendências críticas</span><Icon name="arrow" size={14}/></button></div>
           <button className="button button-yellow routines-agent-cta" onClick={onAssistant}><Icon name="command" size={15}/>Abrir agente</button>
