@@ -1,11 +1,17 @@
+VELOCE V14 — VALIDACAO
+Data: 31/08/2026
 
-> veloce-central-operacional@12.0.0 validate
-> node scripts/validate.mjs
+PASSOU:
+- validacao estrutural scripts/validate.mjs
+- sintaxe TSX de app/page.tsx
+- sintaxe TSX de app/layout.tsx
+- desktop: 48 / 18 / 15 preservado
+- mobile: 29 / 15 / 13 preservado
+- dashboard reduzido para indicadores essenciais + prioridades
+- blocos redundantes removidos da renderizacao da Visao Geral
+- mobile limitado a 2 prioridades visiveis
+- sem !important
+- SVGs fisicos preservados
 
-VALIDACAO PASSOU
-build-id: veloce-final-curadoria-completa-2026-08-31
-SVGs fisicos: 46
-menor font-size explicito desktop: 15px
-menor font-size explicito mobile: 15px
-app/page.tsx: syntax_errors=0
-app/layout.tsx: syntax_errors=0
+OBSERVACAO:
+O build completo do Next nao foi executado nesta copia porque node_modules nao acompanha o pacote. A tentativa de instalar dependencias no ambiente expirou; a validacao sintatica foi feita diretamente com o compilador TypeScript disponivel no ambiente.

@@ -1,6 +1,6 @@
 "use client";
 
-import { CSSProperties, FormEvent, ReactNode, useMemo, useState } from "react";
+import { CSSProperties, FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
 
 type View = "Dashboard" | "Esteira" | "Associados" | "Rede" | "Documentos" | "Rotinas" | "Assistente";
 type Stage = "Entrada" | "Documentos" | "Analise" | "Vistoria" | "Aprovacao" | "Reparo" | "Concluido";
@@ -123,22 +123,55 @@ export default function Page() {
   },[events,search]);
 
   function notify(text:string){setToast(text);window.setTimeout(()=>setToast(""),2200);}
-  function navigate(next:View){setView(next);setNavOpen(false);window.scrollTo({top:0,behavior:"smooth"});}
+  function navigate(next:View){
+    if(next===view){window.scrollTo({top:0,behavior:"smooth"});setNavOpen(false);return;}
+    setView(next);
+    setNavOpen(false);
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
   function moveEvent(id:string,stage:Stage){setEvents(items=>items.map(item=>item.id===id?{...item,stage,updated:"agora"}:item));setSelectedEvent(item=>item?{...item,stage,updated:"agora"}:item);notify("Etapa atualizada.");}
+
+  useEffect(()=>{
+    const selector=[
+      ".view-transition .panel",
+      ".view-transition .command-center",
+      ".view-transition .routine-hero",
+      ".view-transition .routine-card",
+      ".view-transition .provider-card",
+      ".view-transition .stage-overview button",
+      ".view-transition .summary-strip > div",
+      ".view-transition .document-summary > div",
+      ".view-transition .provider-summary > div",
+      ".view-transition .associate-focus"
+    ].join(",");
+    const nodes=Array.from(document.querySelectorAll<HTMLElement>(selector));
+    nodes.forEach((node,index)=>{
+      node.classList.add("scroll-reveal");
+      node.style.setProperty("--reveal-delay",`${Math.min(index%6,5)*42}ms`);
+    });
+    if(!("IntersectionObserver" in window)){nodes.forEach(node=>node.classList.add("is-visible"));return;}
+    const observer=new IntersectionObserver(entries=>{
+      entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add("is-visible");observer.unobserve(entry.target);}});
+    },{threshold:.08,rootMargin:"0px 0px -5% 0px"});
+    nodes.forEach(node=>observer.observe(node));
+    return()=>observer.disconnect();
+  },[view]);
 
   return <main className="app-stage">
     <AppHeader view={view} onNavigate={navigate} onSearch={()=>setModal("search")} onAgent={()=>navigate("Assistente")} onMenu={()=>setNavOpen(true)} riskCount={risk.length}/>
     <section className="app-shell">
       <div className="content-shell">
-        {view==="Dashboard" ? <Dashboard events={events} risk={risk} overdue={overdue} onNavigate={navigate} onEvent={setSelectedEvent} onNewEvent={()=>setModal("event")}/>
-        : <><PageHeader view={view} onNewAssociate={()=>setModal("associate")} onNewEvent={()=>setModal("event")}/>
-          {view==="Esteira"&&<PipelineView events={filteredEvents} search={search} setSearch={setSearch} onEvent={setSelectedEvent}/>} 
-          {view==="Associados"&&<AssociatesView associates={associates} onNew={()=>setModal("associate")}/>} 
-          {view==="Rede"&&<ProvidersView notify={notify}/>} 
-          {view==="Documentos"&&<DocumentsView notify={notify}/>} 
-          {view==="Rotinas"&&<RoutinesView notify={notify} onAgent={()=>navigate("Assistente")}/>} 
-          {view==="Assistente"&&<AgentView events={events} onEvent={setSelectedEvent} notify={notify}/>} 
-        </>}
+        <div key={view} className="view-transition">
+          {view==="Dashboard" ? <Dashboard events={events} risk={risk} overdue={overdue} onNavigate={navigate} onEvent={setSelectedEvent} onNewEvent={()=>setModal("event")}/>
+          : <><PageHeader view={view} onNewAssociate={()=>setModal("associate")} onNewEvent={()=>setModal("event")}/>
+            {view==="Esteira"&&<PipelineView events={filteredEvents} search={search} setSearch={setSearch} onEvent={setSelectedEvent}/>} 
+            {view==="Associados"&&<AssociatesView associates={associates} onNew={()=>setModal("associate")}/>} 
+            {view==="Rede"&&<ProvidersView notify={notify}/>} 
+            {view==="Documentos"&&<DocumentsView notify={notify}/>} 
+            {view==="Rotinas"&&<RoutinesView notify={notify} onAgent={()=>navigate("Assistente")}/>} 
+            {view==="Assistente"&&<AgentView events={events} onEvent={setSelectedEvent} notify={notify}/>} 
+          </>}
+        </div>
       </div>
     </section>
     <MobileDrawer open={navOpen} view={view} onNavigate={navigate} onClose={()=>setNavOpen(false)}/>
@@ -180,56 +213,66 @@ function PageHeader({view,onNewAssociate,onNewEvent}:{view:View;onNewAssociate:(
 }
 
 function Dashboard({events,risk,overdue,onNavigate,onEvent,onNewEvent}:{events:EventItem[];risk:EventItem[];overdue:EventItem[];onNavigate:(v:View)=>void;onEvent:(e:EventItem)=>void;onNewEvent:()=>void}){
-  const stageCounts=stages.map(s=>({label:s.label,count:events.filter(e=>e.stage===s.key).length}));
-  const activeTotal=2458;
-  return <div className="dashboard">
-    <header className="dashboard-intro"><div><span className="page-kicker">Central operacional</span><h1>Visão geral</h1><p>Prioridades, fila e próximos passos da operação.</p></div><div className="intro-actions"><AppButton icon="flow" onClick={()=>onNavigate("Esteira")}>Abrir esteira</AppButton><AppButton kind="primary" icon="plus" onClick={onNewEvent}>Novo evento</AppButton></div></header>
+  const atRisk = risk.filter(e=>e.sla==="Risco");
+  const pendingDocuments = documents.filter(d=>d.status!=="Recebido").length;
+  const priorities = [...overdue,...atRisk.filter(e=>!overdue.some(o=>o.id===e.id))].slice(0,3);
 
-    <section className="dashboard-top-grid">
-      <article className="panel queue-card">
-        <SectionHead title="Esteira operacional" action="Ver esteira" onAction={()=>onNavigate("Esteira")}/>
-        <div className="queue-list">{risk.slice(0,2).map(e=><button key={e.id} onClick={()=>onEvent(e)}><span className="queue-code">{e.id}</span><span className="queue-person"><strong>{e.associate}</strong><small>{e.vehicle} · {e.plate}</small></span><span className="queue-stage">{stages.find(s=>s.key===e.stage)?.label}</span><Status value={e.sla}/><Icon name="arrow" size={16}/></button>)}</div>
-      </article>
+  return <div className="dashboard overview-dashboard">
+    <header className="dashboard-intro overview-intro">
+      <div>
+        <span className="page-kicker">Central operacional</span>
+        <h1>Visão geral</h1>
+        <p>Somente o que precisa da sua atenção agora.</p>
+      </div>
+      <div className="intro-actions">
+        <AppButton icon="flow" onClick={()=>onNavigate("Esteira")}>Abrir esteira</AppButton>
+        <AppButton kind="primary" icon="plus" onClick={onNewEvent}>Novo evento</AppButton>
+      </div>
+    </header>
 
-      <article className="panel metrics-cluster">
-        <div className="cluster-metric"><span>SLAs no prazo</span><strong>74%</strong><small>{risk.length} em atenção</small><img src="/charts/sla.svg" alt="Tendência de SLA"/></div>
-        <div className="cluster-metric"><span>Documentos atrasados</span><strong>38</strong><small>{overdue.length} críticos agora</small><img src="/charts/docs.svg" alt="Tendência de documentos"/></div>
-        <div className="cluster-metric"><span>Eventos no mês</span><strong>203</strong><small>+18 na semana</small><img src="/charts/volume.svg" alt="Tendência de volume"/></div>
-        <div className="cluster-active"><div className="donut-wrap"><img src="/charts/donut.svg" alt="Distribuição de associados"/><span><strong>{activeTotal.toLocaleString("pt-BR")}</strong><small>total</small></span></div><div className="donut-legend"><span><i className="dot yellow"/>Ativos <strong>2.220</strong></span><span><i className="dot amber"/>Em análise <strong>156</strong></span><span><i className="dot neutral"/>Inativos <strong>82</strong></span></div></div>
-      </article>
+    <section className="overview-alerts" aria-label="Indicadores prioritários">
+      <button className="panel overview-alert overview-alert-danger" onClick={()=>onNavigate("Esteira")}>
+        <span className="overview-alert-icon"><Icon name="alert" size={18}/></span>
+        <span className="overview-alert-copy"><small>Atrasados</small><strong>{overdue.length}</strong></span>
+        <Icon name="arrow" size={16}/>
+      </button>
+      <button className="panel overview-alert overview-alert-warning" onClick={()=>onNavigate("Esteira")}>
+        <span className="overview-alert-icon"><Icon name="clock" size={18}/></span>
+        <span className="overview-alert-copy"><small>Em risco</small><strong>{atRisk.length}</strong></span>
+        <Icon name="arrow" size={16}/>
+      </button>
+      <button className="panel overview-alert" onClick={()=>onNavigate("Documentos")}>
+        <span className="overview-alert-icon"><Icon name="documentCheck" size={18}/></span>
+        <span className="overview-alert-copy"><small>Docs pendentes</small><strong>{pendingDocuments}</strong></span>
+        <Icon name="arrow" size={16}/>
+      </button>
     </section>
 
-    <section className="dashboard-bento">
-      <article className="panel quick-card">
-        <SectionHead title="Ações rápidas"/>
-        <div className="quick-list">
-          <QuickAction icon="documentCheck" title="Cobrar documentos" detail="8 pendências" onClick={()=>onNavigate("Documentos")}/>
-          <QuickAction icon="clock" title="Revisar SLAs" detail={`${risk.length} em atenção`} onClick={()=>onNavigate("Esteira")}/>
-          <QuickAction icon="route" title="Distribuir rede" detail="4 prestadores" onClick={()=>onNavigate("Rede")}/>
-          <QuickAction icon="scan" title="Triar entradas" detail="2 novos" onClick={()=>onNavigate("Esteira")}/>
+    <section className="panel overview-priorities">
+      <div className="overview-priorities-head">
+        <div>
+          <span className="panel-kicker">Atenção imediata</span>
+          <h2>Prioridades agora</h2>
         </div>
-      </article>
+        <button className="text-action" onClick={()=>onNavigate("Esteira")}>Ver esteira<Icon name="arrow" size={16}/></button>
+      </div>
 
-      <article className="command-center">
-        <div className="command-center-top"><span className="command-mark"><Icon name="command" size={21}/></span><div><span>Agente Veloce</span><strong>Operação em um só lugar.</strong></div></div>
-        <div className="command-center-prompts"><button onClick={()=>onNavigate("Assistente")}><Icon name="clock" size={17}/><span>Quais SLAs exigem atenção?</span><Icon name="arrow" size={16}/></button><button onClick={()=>onNavigate("Assistente")}><Icon name="report" size={17}/><span>Resumo das pendências críticas</span><Icon name="arrow" size={16}/></button></div>
-        <button className="command-center-cta" onClick={()=>onNavigate("Assistente")}><Icon name="command" size={18}/><span>Abrir agente</span><Icon name="arrow" size={16}/></button>
-      </article>
-
-      <article className="panel activity-card"><SectionHead title="Atividade recente" action="Ver todas" onAction={()=>onNavigate("Esteira")}/><div className="activity-list">{[events[1],events[0],events[4],events[6]].map((e,i)=><button key={e.id} onClick={()=>onEvent(e)}><i className={`activity-dot d${i}`}/><span><strong>{i===0?`${e.id} enviado para vistoria`:i===1?`Documento recebido em ${e.id}`:i===2?`SLA revisado em ${e.id}`:`Cobrança registrada em ${e.id}`}</strong><small>{e.owner} · {e.updated}</small></span><span className="initial-avatar">{e.owner.slice(0,1)}</span></button>)}</div></article>
-
-      <article className="panel vehicle-highlight"><div className="vehicle-photo"><img src={vehiclePhoto} alt="SUV preto em movimento"/><span className="photo-chip"><Icon name="car" size={16}/>12 vistorias hoje</span></div><div className="vehicle-copy"><span className="panel-kicker">Destaque do dia</span><h2>Fluxo de vistorias</h2><strong>92% concluídas</strong><div className="progress"><i/></div><button onClick={()=>onNavigate("Esteira")}>Ver detalhes<Icon name="arrow" size={16}/></button></div></article>
-    </section>
-
-    <section className="dashboard-bottom-grid">
-      <article className="panel operator-card"><div className="operator-avatar"><img src={operatorPhoto} alt="Profissional da central operacional"/></div><div><span className="panel-kicker">Turno atual</span><h2>3 prioridades para agora</h2><p>Baseadas em SLA e pendências.</p><button onClick={()=>onNavigate("Esteira")}>Abrir fila<Icon name="arrow" size={16}/></button></div></article>
-      <article className="panel shift-kpis"><div><span><Icon name="alert" size={18}/></span><strong>15</strong><small>SLAs em risco</small></div><div><span><Icon name="file" size={18}/></span><strong>8</strong><small>Docs atrasados</small></div><div><span><Icon name="flow" size={18}/></span><strong>23</strong><small>Entradas novas</small></div></article>
-      <article className="panel agenda-card"><SectionHead title="Agenda de hoje"/><div className="agenda-list">{["09:30","11:00","14:20"].map((time,i)=><button key={time} onClick={()=>onEvent(events[i])}><time>{time}</time><span><strong>{i===0?"Retorno de documentos":i===1?"Vistoria agendada":"Validação de reparo"}</strong><small>{events[i].associate}</small></span><Icon name="arrow" size={16}/></button>)}</div></article>
+      <div className="overview-priority-list">
+        {priorities.map((e,i)=><button key={e.id} onClick={()=>onEvent(e)}>
+          <span className={`overview-priority-rank ${e.sla==="Atrasado"?"critical":""}`}>{String(i+1).padStart(2,"0")}</span>
+          <span className="overview-priority-main">
+            <strong>{e.associate}</strong>
+            <small>{e.id} · {e.vehicle} · {e.plate}</small>
+          </span>
+          <span className="overview-priority-stage">{stages.find(s=>s.key===e.stage)?.label}</span>
+          <Status value={e.sla}/>
+          <Icon name="arrow" size={16}/>
+        </button>)}
+        {priorities.length===0&&<div className="overview-empty"><Icon name="check" size={20}/><span>Nenhuma prioridade crítica agora.</span></div>}
+      </div>
     </section>
   </div>;
 }
-
-function QuickAction({icon,title,detail,onClick}:{icon:IconName;title:string;detail:string;onClick:()=>void}){return <button className="quick-action" onClick={onClick}><span><Icon name={icon} size={18}/></span><div><strong>{title}</strong><small>{detail}</small></div><Icon name="arrow" size={16}/></button>}
 
 function PipelineView({events,search,setSearch,onEvent}:{events:EventItem[];search:string;setSearch:(s:string)=>void;onEvent:(e:EventItem)=>void}){
   return <div className="workspace">
@@ -264,7 +307,7 @@ function AgentView({events,onEvent,notify}:{events:EventItem[];onEvent:(e:EventI
   const [input,setInput]=useState("");
   function send(text=input){const t=text.trim();if(!t)return;setMessages(m=>[...m,{id:`u${Date.now()}`,role:"user",text:t},{id:`a${Date.now()+1}`,role:"assistant",text:"Consulta registrada. A próxima ação está pronta para confirmação."}]);setInput("");}
   const critical=events.filter(e=>e.sla!=="Dentro").slice(0,3);
-  return <div className="agent-layout"><section className="panel agent-main"><header className="agent-top"><span className="agent-symbol"><Icon name="command" size={21}/></span><div><span className="panel-kicker">Agente Veloce</span><h2>Comandos operacionais</h2></div><span className="agent-ready"><i/>Pronto</span></header><div className="prompt-row">{["Revisar SLAs","Cobrar documentos","Localizar associado"].map((t,i)=><button key={t} onClick={()=>send(t)}><Icon name={i===0?"clock":i===1?"documentCheck":"search"} size={17}/>{t}</button>)}</div><div className="message-list">{messages.map(m=><div key={m.id} className={`message ${m.role}`}><span>{m.text}</span></div>)}</div><form className="agent-input" onSubmit={(e)=>{e.preventDefault();send();}}><Icon name="message" size={18}/><input value={input} onChange={e=>setInput(e.target.value)} placeholder="Digite uma ação ou pergunta"/><button type="submit"><span>Executar</span><Icon name="send" size={17}/></button></form></section><aside className="agent-side"><article className="critical-panel"><span className="panel-kicker">Fila crítica</span><strong>{critical.length}</strong><p>itens para decisão imediata</p><div>{critical.map(e=><button key={e.id} onClick={()=>onEvent(e)}><span><strong>{e.associate}</strong><small>{e.id} · {stages.find(s=>s.key===e.stage)?.label}</small></span><Status value={e.sla}/></button>)}</div></article><article className="panel agent-actions-card"><SectionHead title="Atalhos"/><button onClick={()=>notify("Relatório preparado.")}><Icon name="report" size={18}/><span>Gerar resumo da rodada</span><Icon name="arrow" size={16}/></button><button onClick={()=>notify("Documentos organizados.")}><Icon name="documentCheck" size={18}/><span>Organizar documentos</span><Icon name="arrow" size={16}/></button><button onClick={()=>notify("Rede consultada.")}><Icon name="route" size={18}/><span>Consultar capacidade da rede</span><Icon name="arrow" size={16}/></button></article></aside></div>;
+  return <div className="agent-layout"><section className="panel agent-main"><header className="agent-top"><span className="agent-symbol"><Icon name="command" size={21}/></span><div><span className="panel-kicker">Agente Veloce</span><h2>Comandos operacionais</h2></div><span className="agent-ready"><i/>Pronto</span></header><div className="prompt-row">{["Revisar SLAs","Cobrar documentos","Localizar associado"].map((t,i)=><button key={t} onClick={()=>send(t)}><Icon name={i===0?"clock":i===1?"documentCheck":"search"} size={17}/>{t}</button>)}</div><div className="message-list">{messages.map(m=><div key={m.id} className={`message ${m.role}`}><span>{m.text}</span></div>)}</div><form className="agent-input" onSubmit={(e)=>{e.preventDefault();send();}}><span className="agent-input-icon" aria-hidden="true"><img src="/icons/message.svg" alt=""/></span><input value={input} onChange={e=>setInput(e.target.value)} placeholder="Digite uma ação ou pergunta"/><button type="submit"><span>Executar</span><Icon name="send" size={17}/></button></form></section><aside className="agent-side"><article className="critical-panel"><span className="panel-kicker">Fila crítica</span><strong>{critical.length}</strong><p>itens para decisão imediata</p><div>{critical.map(e=><button key={e.id} onClick={()=>onEvent(e)}><span><strong>{e.associate}</strong><small>{e.id} · {stages.find(s=>s.key===e.stage)?.label}</small></span><Status value={e.sla}/></button>)}</div></article><article className="panel agent-actions-card"><SectionHead title="Atalhos"/><button onClick={()=>notify("Relatório preparado.")}><Icon name="report" size={18}/><span>Gerar resumo da rodada</span><Icon name="arrow" size={16}/></button><button onClick={()=>notify("Documentos organizados.")}><Icon name="documentCheck" size={18}/><span>Organizar documentos</span><Icon name="arrow" size={16}/></button><button onClick={()=>notify("Rede consultada.")}><Icon name="route" size={18}/><span>Consultar capacidade da rede</span><Icon name="arrow" size={16}/></button></article></aside></div>;
 }
 
 function EventDrawer({event,onClose,onMove}:{event:EventItem;onClose:()=>void;onMove:(id:string,stage:Stage)=>void}){
