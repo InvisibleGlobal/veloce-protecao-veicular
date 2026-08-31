@@ -1,4 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1F2937" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-  <path d="M12 3.25l1.18 3.62a4.15 4.15 0 0 0 2.68 2.68L19.5 10.7l-3.64 1.18a4.15 4.15 0 0 0-2.68 2.68L12 18.2l-1.18-3.64a4.15 4.15 0 0 0-2.68-2.68L4.5 10.7l3.64-1.15a4.15 4.15 0 0 0 2.68-2.68L12 3.25Z"/>
-  <path d="M18.7 16.25l.48 1.46c.18.55.61.98 1.16 1.16l1.46.48-1.46.47c-.55.18-.98.61-1.16 1.16l-.48 1.47-.47-1.47a1.82 1.82 0 0 0-1.16-1.16l-1.47-.47 1.47-.48c.55-.18.98-.61 1.16-1.16l.47-1.46Z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+  <rect x="3.5" y="3.5" width="6.5" height="6.5" rx="2.2" stroke="currentColor" stroke-width="1.7"/>
+  <rect x="14" y="3.5" width="6.5" height="6.5" rx="2.2" stroke="currentColor" stroke-width="1.7"/>
+  <rect x="3.5" y="14" width="6.5" height="6.5" rx="2.2" stroke="currentColor" stroke-width="1.7"/>
+  <rect x="14" y="14" width="6.5" height="6.5" rx="2.2" stroke="currentColor" stroke-width="1.7"/>
+  <path d="M10 6.75h4M10 17.25h4M6.75 10v4M17.25 10v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
 </svg>

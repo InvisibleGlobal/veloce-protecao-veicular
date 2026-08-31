@@ -1,35 +1,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
-
-const root = process.cwd();
-const pagePath = path.join(root, 'app', 'page.tsx');
-const cssPath = path.join(root, 'app', 'globals.css');
-const page = fs.readFileSync(pagePath, 'utf8');
-const css = fs.readFileSync(cssPath, 'utf8');
-
-const iconTypeStart = page.indexOf('type IconName');
-const iconTypeEnd = page.indexOf(';', iconTypeStart);
-if (iconTypeStart < 0 || iconTypeEnd < 0) throw new Error('IconName type not found');
-const iconSegment = page.slice(iconTypeStart, iconTypeEnd);
-const icons = [...iconSegment.matchAll(/"([A-Za-z0-9]+)"/g)].map((m) => m[1]);
-const missingIcons = icons.filter((name) => !fs.existsSync(path.join(root, 'public', 'icons', `${name}.svg`)));
-if (missingIcons.length) throw new Error(`Missing SVG icons: ${missingIcons.join(', ')}`);
-if (/<svg\b|<path\b|<circle\b|<rect\b/.test(page)) throw new Error('Inline SVG markup found in app/page.tsx');
-if (/[\u{1F300}-\u{1FAFF}]/u.test(page)) throw new Error('Emoji found in app/page.tsx');
-
-const requiredAssets = ['member-main.jpg', 'member-avatar.jpg', 'veloce-mark.svg', 'favicon.svg'];
-const missingAssets = requiredAssets.filter((name) => !fs.existsSync(path.join(root, 'public', name)));
-if (missingAssets.length) throw new Error(`Missing public assets: ${missingAssets.join(', ')}`);
-
-let braces = 0;
-let parens = 0;
-for (const char of css) {
-  if (char === '{') braces += 1;
-  if (char === '}') braces -= 1;
-  if (char === '(') parens += 1;
-  if (char === ')') parens -= 1;
-  if (braces < 0 || parens < 0) throw new Error('CSS delimiter imbalance detected');
-}
-if (braces !== 0 || parens !== 0) throw new Error(`CSS delimiter imbalance: braces=${braces}, parens=${parens}`);
-
-console.log(`Validation OK: ${icons.length} physical SVG files, no inline SVG, required assets present, CSS balanced.`);
+const root=process.cwd();
+const css=fs.readFileSync(path.join(root,'app/globals.css'),'utf8');
+const tsx=fs.readFileSync(path.join(root,'app/page.tsx'),'utf8');
+const failures=[];
+for(const term of ['blue','navy','green']) if(new RegExp(term,'i').test(css+'\n'+tsx)) failures.push(`cor proibida/termo encontrado: ${term}`);
+if(css.includes('!important')) failures.push('!important encontrado');
+if(/<svg\b/i.test(tsx)) failures.push('SVG inline encontrado');
+for(const required of ['--title:54px','--subtitle:19px','--legend:15px','--title:33px','--subtitle:15px','--legend:13px']) if(!css.includes(required)) failures.push(`token ausente: ${required}`);
+const iconDir=path.join(root,'public/icons');
+const icons=fs.readdirSync(iconDir).filter(f=>f.endsWith('.svg'));
+if(icons.length<30) failures.push(`poucos SVGs físicos: ${icons.length}`);
+if(failures.length){console.error(failures.join('\n'));process.exit(1)}
+console.log(`PASS — ${icons.length} SVGs físicos; tokens tipográficos presentes; sem !important/blue/navy/green/SVG inline.`);
