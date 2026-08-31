@@ -235,10 +235,10 @@ small{font-size:var(--legend);line-height:1.42;color:var(--muted)}
 .overview-priority-main small{font-size:var(--legend);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .overview-priority-stage{font-size:var(--legend);font-weight:700;color:var(--muted);white-space:nowrap}
 .overview-empty{min-height:110px;display:flex;align-items:center;justify-content:center;gap:9px;color:var(--muted);font-weight:700}
-.overview-cta-banner{display:grid;grid-template-columns:minmax(0,1.72fr) minmax(320px,.72fr);min-height:184px;border:1px solid #201F1B;border-radius:18px;overflow:hidden;background:#11110F;box-shadow:0 8px 24px rgba(22,21,18,.08)}
-.overview-cta-media{min-height:184px;background:#1A1A18;position:relative;overflow:hidden}
-.overview-cta-media img{width:100%;height:100%;min-height:184px;object-fit:cover;object-position:center 55%;display:block;transform:scale(1.012)}
-.overview-cta-content{min-height:184px;padding:20px 24px;background:#11110F;color:#FFF;display:flex;flex-direction:column;justify-content:center;align-items:flex-start}
+.overview-cta-banner{display:grid;grid-template-columns:minmax(0,1.72fr) minmax(320px,.72fr);height:184px;min-height:184px;max-height:184px;border:1px solid #201F1B;border-radius:18px;overflow:hidden;background:#11110F;box-shadow:0 8px 24px rgba(22,21,18,.08)}
+.overview-cta-media{height:184px;min-height:0;background:#1A1A18;position:relative;overflow:hidden}
+.overview-cta-media img{width:100%;height:184px;min-height:0;object-fit:cover;object-position:center 55%;display:block;transform:scale(1.012)}
+.overview-cta-content{height:184px;min-height:0;padding:13px 24px;background:#11110F;color:#FFF;display:flex;flex-direction:column;justify-content:center;align-items:flex-start}
 .overview-cta-content .panel-kicker{color:#E1D8BF;font-size:10px;line-height:1.1;letter-spacing:.08em}
 .overview-cta-content h2{margin:6px 0 7px;font-family:var(--font-display);font-size:27px;line-height:.98;font-weight:600;letter-spacing:-.04em;display:grid;gap:1px}
 .overview-cta-content p{margin:0 0 11px;font-size:12px;line-height:1.4;color:rgba(255,255,255,.72);max-width:38ch;display:block;overflow:visible}
@@ -509,7 +509,7 @@ button.table-row:hover{background:#FBF9F3}
   .overview-priority-stage{display:none}
   .overview-priority-list .status{grid-column:2;grid-row:2;justify-self:start;min-height:27px;padding:0 9px;font-size:var(--legend)}
   .overview-priority-list>button>.svg-icon:last-child{grid-column:3;grid-row:1/span 2}
-  .overview-cta-banner{grid-template-columns:1.08fr .92fr;min-height:126px;border-radius:15px}.overview-cta-media{min-height:126px}.overview-cta-media img{min-height:126px;object-position:center center}.overview-cta-content{min-height:126px;padding:12px}.overview-cta-content .panel-kicker{display:none}.overview-cta-content h2{font-size:20px;line-height:.98;gap:1px;margin:0 0 9px}.overview-cta-content p{display:none}.overview-cta-button{width:auto;min-height:34px;height:34px;padding:0 10px;font-size:11px;border-radius:9px}
+  .overview-cta-banner{grid-template-columns:1.08fr .92fr;height:126px;min-height:126px;max-height:126px;border-radius:15px}.overview-cta-media{height:126px;min-height:0}.overview-cta-media img{height:126px;min-height:0;object-position:center center}.overview-cta-content{height:126px;min-height:0;padding:12px}.overview-cta-content .panel-kicker{display:none}.overview-cta-content h2{font-size:20px;line-height:.98;gap:1px;margin:0 0 9px}.overview-cta-content p{display:none}.overview-cta-button{width:auto;min-height:34px;height:34px;padding:0 10px;font-size:11px;border-radius:9px}
   .workspace{gap:12px}
   .stage-overview{margin-right:-14px;padding-right:14px}.stage-overview button{flex:0 0 124px;min-height:102px;padding:14px}.stage-overview span{font-size:var(--legend)}.stage-overview strong{font-size:29px}
   .table-toolbar{min-height:0;padding:14px;display:grid;grid-template-columns:1fr auto;gap:10px}.table-toolbar h2{font-size:20px}.table-toolbar span{font-size:var(--legend)}.inline-search{grid-column:1/-1;grid-row:2;min-width:0}.filter-button{grid-column:2;grid-row:1}
