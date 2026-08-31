@@ -1,0 +1,48 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="app/globals.css"><style>html,body{width:100%;min-height:100%;}</style></head><body>
+<main class="app-stage"><section class="app-shell app-shell-assistant">
+<header class="topbar">
+  <button class="brand"><img src="public/veloce-mark.svg"><span><strong>Veloce</strong><small>Central operacional</small></span></button>
+  <nav class="main-nav">
+    <button><img class="svg-icon" width="15" height="15" src="public/icons/grid.svg"><span>Visão geral</span></button>
+    <button><img class="svg-icon" width="15" height="15" src="public/icons/flow.svg"><span>Esteira</span></button>
+    <button><img class="svg-icon" width="15" height="15" src="public/icons/users.svg"><span>Associados</span></button>
+    <button><img class="svg-icon" width="15" height="15" src="public/icons/network.svg"><span>Rede</span></button>
+    <button><img class="svg-icon" width="15" height="15" src="public/icons/file.svg"><span>Documentos</span></button>
+    <button><img class="svg-icon" width="15" height="15" src="public/icons/bolt.svg"><span>Rotinas</span></button>
+  </nav>
+  <div class="top-actions">
+    <button class="icon-button search-trigger"><img class="svg-icon" width="16" height="16" src="public/icons/search.svg"><span class="shortcut">⌘K</span></button>
+    <button class="icon-button"><img class="svg-icon" width="16" height="16" src="public/icons/bell.svg"><i class="notification-dot"></i></button>
+    <button class="assistant-top is-active"><img class="svg-icon" width="15" height="15" src="public/icons/command.svg"><span>Agente</span></button>
+    <button class="profile-button profile-photo-button"><img src="public/member-avatar.jpg"></button>
+  </div>
+</header>
+<div class="page-shell">
+<header class="page-header page-header-prototype">
+  <div class="page-copy"><span class="eyebrow">COMANDO OPERACIONAL</span><h1 class="page-title">Agente de operação</h1><p class="subtitle">Peça a ação, acompanhe a execução e mantenha o controle na mesma tela.</p></div>
+  <div class="page-actions"><button class="button button-light"><img class="svg-icon" width="15" height="15" src="public/icons/userPlus.svg">Novo associado</button><button class="button button-dark"><img class="svg-icon" width="15" height="15" src="public/icons/plus.svg">Novo evento</button></div>
+</header>
+<div class="workspace-view assistant-workspace-v2">
+<section class="assistant-command-grid">
+<article class="assistant-command-hero">
+<div class="assistant-command-top"><span class="assistant-mark"><img class="svg-icon" width="20" height="20" src="public/icons/command.svg"></span><span class="assistant-sync-badge"><i></i>Contexto sincronizado</span></div>
+<div class="assistant-command-copy"><span class="eyebrow eyebrow-light">AGENTE OPERACIONAL</span><h2>Converse com a operação.</h2><p>O agente consulta o contexto, executa comandos locais e usa a automação externa quando ela estiver configurada.</p></div>
+<div class="assistant-command-kpis"><div><strong>14</strong><span>eventos ativos</span></div><div><strong>4</strong><span>em risco</span></div><div><strong>2</strong><span>atrasados</span></div><div><strong>6</strong><span>associados</span></div></div>
+</article>
+<article class="panel assistant-operator-card"><div class="assistant-operator-photo"><img src="public/member-main.jpg"></div><div><span class="label">CONTEXTO HUMANO</span><h3 class="card-title">Operação + IA, sem perder controle.</h3><p class="description">A experiência mantém decisões importantes visíveis e acionáveis.</p></div></article>
+</section>
+<section class="assistant-layout assistant-layout-v2">
+<article class="panel chat-panel chat-panel-v2">
+<div class="chat-topbar"><div><span class="eyebrow">CONVERSA OPERACIONAL</span><h2 class="section-title">Comando em linguagem natural</h2><p class="description">Ex.: “mover EV-2848 para Vistoria” ou “gerar relatório operacional”.</p></div><span class="assistant-live-badge"><i></i>Online</span></div>
+<div class="chat-messages"><div class="chat-message assistant"><span class="chat-role"><img class="svg-icon" width="14" height="14" src="public/icons/command.svg"></span><p>Posso revisar prioridades, mover eventos e organizar documentos sem você trocar de tela.</p></div><div class="chat-message user"><span class="chat-role">Você</span><p>Quais SLAs precisam de atenção agora?</p></div></div>
+<form class="chat-form"><div class="chat-input-wrap"><img class="svg-icon" width="16" height="16" src="public/icons/message.svg"><input placeholder="Digite uma ação ou pergunta operacional"></div><button class="button button-yellow"><img class="svg-icon" width="14" height="14" src="public/icons/send.svg">Executar</button></form>
+</article>
+<aside class="assistant-side assistant-side-v2"><section class="panel agent-actions-card"><div class="panel-header"><div><h2 class="section-title">Ações disponíveis</h2><p class="description">Atalhos para comandos recorrentes.</p></div></div><div class="agent-actions">
+<button class="agent-action"><span class="agent-action-icon"><img class="svg-icon" width="16" height="16" src="public/icons/userPlus.svg"></span><span><strong>Cadastrar associado</strong><small>Abre o cadastro e atualiza a base</small></span><img class="svg-icon" width="14" height="14" src="public/icons/chevron.svg"></button>
+<button class="agent-action"><span class="agent-action-icon"><img class="svg-icon" width="16" height="16" src="public/icons/documentCheck.svg"></span><span><strong>Cobrar documentos</strong><small>Organiza as pendências para ação</small></span><img class="svg-icon" width="14" height="14" src="public/icons/chevron.svg"></button>
+<button class="agent-action"><span class="agent-action-icon"><img class="svg-icon" width="16" height="16" src="public/icons/clock.svg"></span><span><strong>Revisar SLA</strong><small>Prioriza risco e atraso</small></span><img class="svg-icon" width="14" height="14" src="public/icons/chevron.svg"></button>
+<button class="agent-action"><span class="agent-action-icon"><img class="svg-icon" width="16" height="16" src="public/icons/report.svg"></span><span><strong>Gerar relatório</strong><small>Consolida a operação atual</small></span><img class="svg-icon" width="14" height="14" src="public/icons/chevron.svg"></button>
+</div></section></aside>
+</section>
+</div>
+</div></section></main></body></html>
