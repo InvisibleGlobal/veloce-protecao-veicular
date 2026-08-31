@@ -85,7 +85,7 @@ const viewMeta: Record<View,{title:string;subtitle:string}> = {
 
 const vehiclePhoto = "https://images.pexels.com/photos/6649925/pexels-photo-6649925.jpeg?auto=compress&cs=tinysrgb&w=1200";
 const operatorPhoto = "https://images.pexels.com/photos/8866777/pexels-photo-8866777.jpeg?auto=compress&cs=tinysrgb&w=600";
-const jeepPromoPhoto = "https://images.pexels.com/photos/1638459/pexels-photo-1638459.jpeg?auto=compress&cs=tinysrgb&w=1400";
+const jeepPromoPhoto = "/jeep-compass-premium-banner.png";
 
 function Icon({name,size=18}:{name:IconName;size?:number}) {
   const style = {"--icon-url":`url(/icons/${name}.svg)`,"--icon-size":`${size}px`} as CSSProperties;
