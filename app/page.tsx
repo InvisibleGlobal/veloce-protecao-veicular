@@ -470,7 +470,7 @@ export default function Page() {
 
   return (
     <main className="app-stage">
-      <section className={`app-shell ${view === "Rotinas" ? "app-shell-routines" : ""} ${view === "Dashboard" ? "app-shell-dashboard" : ""}`}>
+      <section className={`app-shell ${view === "Rotinas" ? "app-shell-routines" : ""} ${view === "Dashboard" ? "app-shell-dashboard" : ""} ${view === "Assistente" ? "app-shell-assistant" : ""}`}>
         <header className="topbar">
           <button className="brand" onClick={() => navigate("Dashboard")} aria-label="Ir para a visão geral">
             <img src="/veloce-mark.svg" alt="" />
@@ -492,7 +492,7 @@ export default function Page() {
             <button className="icon-button" aria-label="Notificações" onClick={() => setToast(`${riskCount + overdueCount} itens exigem atenção.`)}>
               <Icon name="bell" size={16}/><i className="notification-dot"/>
             </button>
-            <button className="assistant-top" onClick={() => navigate("Assistente")}><Icon name="command" size={15}/><span>Agente</span></button>
+            <button className={`assistant-top ${view === "Assistente" ? "is-active" : ""}`} onClick={() => navigate("Assistente")} aria-current={view === "Assistente" ? "page" : undefined}><Icon name="command" size={15}/><span>Agente</span></button>
             <button className="profile-button profile-photo-button" aria-label="Perfil" onClick={() => setToast("Perfil operacional ativo.")}><img src="/member-avatar.jpg" alt="Perfil operacional"/></button>
             <button className="icon-button mobile-menu" aria-label="Abrir menu" onClick={() => setMobileNav((value) => !value)}><Icon name={mobileNav ? "close" : "menu"} size={18}/></button>
           </div>
@@ -1150,7 +1150,7 @@ function AssistantView({ messages, input, onInput, onSend, busy, onRoutine, acti
     <div className="workspace-view assistant-workspace-v2">
       <section className="assistant-command-grid">
         <article className="assistant-command-hero">
-          <div className="assistant-command-top"><span className="assistant-mark"><Icon name="command" size={20}/></span><StatusChip type="success">Contexto sincronizado</StatusChip></div>
+          <div className="assistant-command-top"><span className="assistant-mark"><Icon name="command" size={20}/></span><span className="assistant-sync-badge"><i/>Contexto sincronizado</span></div>
           <div className="assistant-command-copy"><span className="eyebrow eyebrow-light">AGENTE OPERACIONAL</span><h2>Converse com a operação.</h2><p>O agente consulta o contexto, executa comandos locais e usa a automação externa quando ela estiver configurada.</p></div>
           <div className="assistant-command-kpis"><div><strong>{activeCount}</strong><span>eventos ativos</span></div><div><strong>{riskCount}</strong><span>em risco</span></div><div><strong>{overdueCount}</strong><span>atrasados</span></div><div><strong>{associates}</strong><span>associados</span></div></div>
         </article>
@@ -1159,7 +1159,7 @@ function AssistantView({ messages, input, onInput, onSend, busy, onRoutine, acti
 
       <section className="assistant-layout assistant-layout-v2">
         <article className="panel chat-panel chat-panel-v2">
-          <div className="chat-topbar"><div><span className="eyebrow">CONVERSA OPERACIONAL</span><h2 className="section-title">Comando em linguagem natural</h2><p className="description">Ex.: “mover EV-2848 para Vistoria” ou “gerar relatório operacional”.</p></div><StatusChip type="success">Online</StatusChip></div>
+          <div className="chat-topbar"><div><span className="eyebrow">CONVERSA OPERACIONAL</span><h2 className="section-title">Comando em linguagem natural</h2><p className="description">Ex.: “mover EV-2848 para Vistoria” ou “gerar relatório operacional”.</p></div><span className="assistant-live-badge"><i/>Online</span></div>
           <div className="chat-messages">{messages.map((message) => (<div className={`chat-message ${message.role}`} key={message.id}><span className="chat-role">{message.role === "assistant" ? <Icon name="command" size={14}/> : "Você"}</span><p>{message.text}</p></div>))}{busy ? <div className="chat-message assistant"><span className="chat-role"><Icon name="refresh" size={14}/></span><p className="typing">Processando solicitação</p></div> : null}</div>
           <form className="chat-form" onSubmit={submit}><div className="chat-input-wrap"><Icon name="message" size={16}/><input value={input} onChange={(event) => onInput(event.target.value)} placeholder="Digite uma ação ou pergunta operacional"/></div><button className="button button-yellow" type="submit" disabled={!input.trim() || busy}><Icon name="send" size={14}/>Executar</button></form>
         </article>
