@@ -1,0 +1,84 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import vm from 'node:vm';
+import {createRequire} from 'node:module';
+import ts from 'typescript';
+import React from 'react';
+import {renderToStaticMarkup} from 'react-dom/server';
+
+const require=createRequire(import.meta.url);
+const root=path.resolve(import.meta.dirname,'..');
+const source=fs.readFileSync(path.join(root,'app/page.tsx'),'utf8');
+const views=['Dashboard','Esteira','Associados','Rede','Documentos','Rotinas','Assistente'];
+const load=(entry,replacement,context={},cache=new Map())=>{
+  const file=path.resolve(root,entry);
+  if(cache.has(file))return cache.get(file).exports;
+  let input=fs.readFileSync(file,'utf8');
+  if(replacement&&file.endsWith('/app/page.tsx')) input=input.replace('useState<View>("Dashboard")',`useState<View>("${replacement}")`);
+  const output=ts.transpileModule(input,{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2020}}).outputText;
+  const module={exports:{}};cache.set(file,module);
+  const localRequire=(specifier)=>{
+    if(!specifier.startsWith('.'))return require(specifier);
+    const base=path.resolve(path.dirname(file),specifier);
+    const target=['.ts','.tsx'].map(ext=>base+ext).find(p=>fs.existsSync(p));
+    assert(target,`Missing local module ${specifier}`);
+    return load(target,replacement,context,cache);
+  };
+  vm.runInNewContext(output,{module,exports:module.exports,require:localRequire,console,...context},{filename:file});
+  return module.exports;
+};
+
+for(const view of views){
+  const Page=load('app/page.tsx',view).default;
+  const html=renderToStaticMarkup(React.createElement(Page));
+  assert.equal((html.match(/<h1\b/g)||[]).length,1,`${view}: one primary title`);
+  assert(html.includes('role="switch"'),`${view}: theme switch`);
+  assert(!/NaN|undefined|Infinity/.test(html),`${view}: invalid values`);
+  assert(html.includes('mobile-nav'),`${view}: mobile navigation`);
+  if(view==='Dashboard'){
+    assert(html.includes('Eventos por etapa')&&html.includes('Controle de prazos'));
+    assert(html.includes('58% dos eventos dentro do prazo'));
+    assert.equal((html.match(/Abrir etapa\./g)||[]).length,7);
+    assert(html.includes('role="tablist"'));
+  }
+  if(view==='Esteira')assert.equal((html.match(/class="table-row"/g)||[]).length,12);
+}
+
+// The new charts must represent the actual session records, including empty and changed states.
+const initial=source.match(/const initialEvents: EventItem\[\] = (\[[\s\S]*?\n\]);/)[1];
+const events=vm.runInNewContext(initial);
+const stages=JSON.parse(JSON.stringify(vm.runInNewContext(source.match(/const stages: [^=]+ = (\[[\s\S]*?\n\]);/)[1])));
+const {queueMetrics}=load('app/chart-data.ts');
+for(const records of [events,[],[{stage:'Entrada',sla:'Dentro'}],events.map(e=>({...e,stage:'Concluido'})),[...events,{stage:'Entrada',sla:'Dentro'}]]){
+  const metrics=queueMetrics(records,stages);
+  assert.equal(metrics.distribution.reduce((a,b)=>a+b.count,0),records.length);
+  assert.equal(metrics.deadlines.reduce((a,b)=>a+b.count,0),records.length);
+  assert(Number.isFinite(metrics.within)&&metrics.within>=0&&metrics.within<=100);
+  assert(metrics.distribution.every(s=>s.count/metrics.max<=1));
+}
+assert.equal(queueMetrics(events,stages).within,58);
+
+function scrollHarness({reduced=false,y=1200}={}){
+  const frames=new Map(),listeners=new Map(),trace=[];let id=0,time=0,commits=0;
+  const window={scrollY:y,scrollTo:({top})=>{window.scrollY=top;trace.push(top);},addEventListener:(name,fn)=>listeners.set(name,fn),removeEventListener:(name)=>listeners.delete(name)};
+  const context={window,matchMedia:()=>({matches:reduced}),performance:{now:()=>time},requestAnimationFrame:fn=>{frames.set(++id,fn);return id;},cancelAnimationFrame:id=>frames.delete(id)};
+  const cancel=load('app/scroll.ts',null,context).scrollToWorkspace(()=>commits++);
+  const step=()=>{time+=16;const batch=[...frames.values()];frames.clear();batch.forEach(fn=>fn(time));};
+  return {cancel,step,frames,listeners,trace,get commits(){return commits;}};
+}
+const scroll=scrollHarness();assert.equal(scroll.commits,0);
+while(scroll.frames.size)scroll.step();
+assert.equal(scroll.commits,1);assert(scroll.trace.length>15);assert.equal(scroll.trace.at(-1),0);
+assert(scroll.trace.every((y,i)=>i===0||y<=scroll.trace[i-1]));assert.equal(scroll.listeners.size,0);
+const reduced=scrollHarness({reduced:true});assert.equal(reduced.commits,1);assert.equal(reduced.frames.size,0);
+const cancelled=scrollHarness();cancelled.step();cancelled.cancel();assert.equal(cancelled.commits,0);assert.equal(cancelled.frames.size,0);assert.equal(cancelled.listeners.size,0);
+const interrupted=scrollHarness();interrupted.step();interrupted.listeners.get('touchstart')();assert.equal(interrupted.commits,1);assert.equal(interrupted.frames.size,0);
+
+const motion=fs.readFileSync(path.join(root,'app/refinement.tsx'),'utf8');
+assert(motion.includes('document.hidden')&&motion.includes('IntersectionObserver')&&motion.includes('prefers-reduced-motion'));
+assert(motion.includes('event.pointerType!=="mouse"'));
+assert(!motion.includes('setState('));
+for(const font of ['regular','medium','semibold'])assert(fs.statSync(path.join(root,`public/fonts/poppins-${font}.woff`)).size>1000);
+console.log('PASS: 7 workspace server renders; 5 chart data states; scroll easing, cancellation and reduced motion; local fonts and motion guards.');
+console.log('Scope: structural and unit tests only; no real-device/browser visual verification.');

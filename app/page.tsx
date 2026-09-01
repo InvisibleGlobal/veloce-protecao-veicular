@@ -1,6 +1,9 @@
 "use client";
 
-import { CSSProperties, FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
+import { CSSProperties, FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { EdgeLight, MotionIcon, ThemeSwitch, useSurfaceMotion } from "./refinement";
+import { OperationalCharts } from "./operational-charts";
+import { scrollToWorkspace } from "./scroll";
 
 type View = "Dashboard" | "Esteira" | "Associados" | "Rede" | "Documentos" | "Rotinas" | "Assistente";
 type Stage = "Entrada" | "Documentos" | "Analise" | "Vistoria" | "Aprovacao" | "Reparo" | "Concluido";
@@ -114,6 +117,19 @@ export default function Page() {
   const [navOpen,setNavOpen] = useState(false);
   const [toast,setToast] = useState("");
   const [search,setSearch] = useState("");
+  const [stageFilter,setStageFilter] = useState<string>("Todos");
+  const stageRef=useRef<HTMLElement>(null);
+  const cancelNavigation=useRef<()=>void>(()=>{});
+  useSurfaceMotion(stageRef,view);
+  useEffect(()=>()=>cancelNavigation.current(),[]);
+  useEffect(()=>{
+    const shortcut=(event:KeyboardEvent)=>{
+      if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==="k") {event.preventDefault();setModal("search");}
+      if(event.key==="Escape") {setModal(null);setSelectedEvent(null);setNavOpen(false);}
+    };
+    window.addEventListener("keydown",shortcut);
+    return()=>window.removeEventListener("keydown",shortcut);
+  },[]);
 
   const risk = useMemo(()=>events.filter(e=>e.sla!=="Dentro"),[events]);
   const overdue = useMemo(()=>events.filter(e=>e.sla==="Atrasado"),[events]);
@@ -125,11 +141,11 @@ export default function Page() {
 
   function notify(text:string){setToast(text);window.setTimeout(()=>setToast(""),2200);}
   function navigate(next:View){
-    if(next===view){window.scrollTo({top:0,behavior:"smooth"});setNavOpen(false);return;}
-    setView(next);
+    cancelNavigation.current();
     setNavOpen(false);
-    window.scrollTo({top:0,behavior:"smooth"});
+    cancelNavigation.current=scrollToWorkspace(()=>setView(next));
   }
+  function inspectStage(stage:string){setStageFilter(stage);setSearch("");navigate("Esteira");}
   function moveEvent(id:string,stage:Stage){setEvents(items=>items.map(item=>item.id===id?{...item,stage,updated:"agora"}:item));setSelectedEvent(item=>item?{...item,stage,updated:"agora"}:item);notify("Etapa atualizada.");}
 
   useEffect(()=>{
@@ -158,14 +174,14 @@ export default function Page() {
     return()=>observer.disconnect();
   },[view]);
 
-  return <main className="app-stage">
+  return <main className="app-stage" ref={stageRef}>
     <AppHeader view={view} onNavigate={navigate} onSearch={()=>setModal("search")} onAgent={()=>navigate("Assistente")} onMenu={()=>setNavOpen(true)} riskCount={risk.length}/>
     <section className="app-shell">
       <div className="content-shell">
         <div key={view} className="view-transition">
-          {view==="Dashboard" ? <Dashboard events={events} risk={risk} overdue={overdue} onNavigate={navigate} onEvent={setSelectedEvent} onNewEvent={()=>setModal("event")}/>
+          {view==="Dashboard" ? <Dashboard events={events} risk={risk} overdue={overdue} onNavigate={navigate} onEvent={setSelectedEvent} onNewEvent={()=>setModal("event")} onStage={inspectStage}/>
           : <><PageHeader view={view} onNewAssociate={()=>setModal("associate")} onNewEvent={()=>setModal("event")}/>
-            {view==="Esteira"&&<PipelineView events={filteredEvents} search={search} setSearch={setSearch} onEvent={setSelectedEvent}/>} 
+            {view==="Esteira"&&<PipelineView events={filteredEvents} search={search} setSearch={setSearch} onEvent={setSelectedEvent} stageFilter={stageFilter} setStageFilter={setStageFilter}/>}
             {view==="Associados"&&<AssociatesView associates={associates} onNew={()=>setModal("associate")}/>} 
             {view==="Rede"&&<ProvidersView notify={notify}/>} 
             {view==="Documentos"&&<DocumentsView notify={notify}/>} 
@@ -191,8 +207,9 @@ function AppHeader({view,onNavigate,onSearch,onAgent,onMenu,riskCount}:{view:Vie
     <button className="brand" onClick={()=>onNavigate("Dashboard")}><span className="brand-mark"><img src="/veloce-mark.svg" alt=""/></span><span><strong>Veloce</strong><small>Central operacional</small></span></button>
     <nav className="desktop-nav">{nav.map(item=><button key={item.view} className={view===item.view?"active":""} onClick={()=>onNavigate(item.view)}><Icon name={item.icon} size={17}/><span>{item.label}</span></button>)}</nav>
     <div className="header-actions">
-      <button className="header-search" onClick={onSearch}><Icon name="search" size={18}/><span>Buscar</span><kbd>⌘K</kbd></button>
-      <button className="header-icon" aria-label="Notificações"><Icon name="bell" size={19}/><b>{riskCount}</b></button>
+      <button className="header-search" onClick={onSearch} aria-label="Buscar eventos e associados"><Icon name="search" size={18}/><span>Buscar</span><kbd>⌘K</kbd></button>
+      <ThemeSwitch/>
+      <button className="header-icon" aria-label={`${riskCount} eventos em atenção. Abrir esteira`} onClick={()=>onNavigate("Esteira")}><Icon name="bell" size={19}/><b>{riskCount}</b></button>
       <button className={`agent-header-button ${view==="Assistente"?"active":""}`} onClick={onAgent}><span className="agent-header-icon"><Icon name="command" size={17}/></span><span>Agente</span></button>
       <button className="profile-button" aria-label="Perfil"><img src={operatorPhoto} alt="Profissional da central operacional"/></button>
     </div>
@@ -213,7 +230,7 @@ function PageHeader({view,onNewAssociate,onNewEvent}:{view:View;onNewAssociate:(
   return <header className="page-header"><div><span className="page-kicker">Veloce operacional</span><h1>{meta.title}</h1><p>{meta.subtitle}</p></div>{actions&&<div className="page-actions">{actions}</div>}</header>;
 }
 
-function Dashboard({events,risk,overdue,onNavigate,onEvent,onNewEvent}:{events:EventItem[];risk:EventItem[];overdue:EventItem[];onNavigate:(v:View)=>void;onEvent:(e:EventItem)=>void;onNewEvent:()=>void}){
+function Dashboard({events,risk,overdue,onNavigate,onEvent,onNewEvent,onStage}:{events:EventItem[];risk:EventItem[];overdue:EventItem[];onNavigate:(v:View)=>void;onEvent:(e:EventItem)=>void;onNewEvent:()=>void;onStage:(stage:string)=>void}){
   const atRisk = risk.filter(e=>e.sla==="Risco");
   const pendingDocuments = documents.filter(d=>d.status!=="Recebido").length;
   const priorities = [...overdue,...atRisk.filter(e=>!overdue.some(o=>o.id===e.id))].slice(0,3);
@@ -223,7 +240,7 @@ function Dashboard({events,risk,overdue,onNavigate,onEvent,onNewEvent}:{events:E
       <div>
         <span className="page-kicker">Central operacional</span>
         <h1>Visão geral</h1>
-        <p>Somente o que precisa da sua atenção agora.</p>
+        <p>O ritmo da operação. As decisões de agora.</p>
       </div>
       <div className="intro-actions">
         <AppButton icon="flow" onClick={()=>onNavigate("Esteira")}>Abrir esteira</AppButton>
@@ -233,6 +250,7 @@ function Dashboard({events,risk,overdue,onNavigate,onEvent,onNewEvent}:{events:E
 
     <section className="overview-alerts" aria-label="Indicadores prioritários">
       <button className="panel overview-alert overview-alert-danger" onClick={()=>onNavigate("Esteira")}>
+        <EdgeLight/>
         <span className="overview-alert-icon"><Icon name="alert" size={18}/></span>
         <span className="overview-alert-copy"><small>Atrasados</small><strong>{overdue.length}</strong></span>
         <Icon name="arrow" size={16}/>
@@ -249,7 +267,10 @@ function Dashboard({events,risk,overdue,onNavigate,onEvent,onNewEvent}:{events:E
       </button>
     </section>
 
+    <OperationalCharts events={events} stages={stages} onStage={onStage}/>
+
     <section className="panel overview-priorities">
+      <EdgeLight/>
       <div className="overview-priorities-head">
         <div>
           <span className="panel-kicker">Atenção imediata</span>
@@ -273,11 +294,13 @@ function Dashboard({events,risk,overdue,onNavigate,onEvent,onNewEvent}:{events:E
       </div>
     </section>
 
-    <section className="overview-cta-banner reveal-on-scroll" aria-label="Chamada principal para proteção veicular">
+    <section className="overview-cta-banner" data-parallax-card aria-label="Chamada principal para proteção veicular">
+      <EdgeLight/>
       <div className="overview-cta-media">
         <img src={jeepPromoPhoto} alt="Jeep em destaque"/>
       </div>
       <div className="overview-cta-content">
+        <MotionIcon name="shield"/>
         <span className="panel-kicker">Proteção veicular</span>
         <h2><span>PROTEJA O SEU</span><span>VEÍCULO AGORA</span></h2>
         <p>Fale com o Agente e avance para a próxima etapa sem sair da central.</p>
@@ -287,11 +310,12 @@ function Dashboard({events,risk,overdue,onNavigate,onEvent,onNewEvent}:{events:E
   </div>;
 }
 
-function PipelineView({events,search,setSearch,onEvent}:{events:EventItem[];search:string;setSearch:(s:string)=>void;onEvent:(e:EventItem)=>void}){
+function PipelineView({events,search,setSearch,onEvent,stageFilter,setStageFilter}:{events:EventItem[];search:string;setSearch:(s:string)=>void;onEvent:(e:EventItem)=>void;stageFilter:string;setStageFilter:(s:string)=>void}){
+  const visibleEvents=stageFilter==="Todos"?events:events.filter(e=>e.stage===stageFilter);
   return <div className="workspace">
-    <section className="stage-overview">{stages.map(stage=>{const count=events.filter(e=>e.stage===stage.key).length;return <button key={stage.key}><span>{stage.label}</span><strong>{count}</strong><i style={{width:`${Math.max(28,count*30)}%`}}/></button>})}</section>
-    <article className="panel table-panel"><div className="table-toolbar"><div><h2>Eventos em andamento</h2><span>{events.length} registros</span></div><label className="inline-search"><Icon name="search" size={17}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar evento, nome ou placa"/></label><button className="filter-button"><Icon name="filter" size={17}/>Filtros</button></div>
-      <div className="data-table"><div className="table-row table-head"><span>Evento</span><span>Associado</span><span>Veículo</span><span>Etapa</span><span>SLA</span><span>Responsável</span><span/></div>{events.map(e=><button className="table-row" key={e.id} onClick={()=>onEvent(e)}><span data-label="Evento"><strong>{e.id}</strong><small>{e.updated}</small></span><span data-label="Associado"><strong>{e.associate}</strong><small>{e.city}</small></span><span data-label="Veículo"><strong>{e.vehicle}</strong><small>{e.plate}</small></span><span data-label="Etapa">{stages.find(s=>s.key===e.stage)?.label}</span><span data-label="SLA"><Status value={e.sla}/></span><span data-label="Responsável">{e.owner}</span><span><Icon name="arrow" size={16}/></span></button>)}</div>
+    <section className="stage-overview" aria-label="Filtrar por etapa">{stages.map(stage=>{const count=events.filter(e=>e.stage===stage.key).length;return <button key={stage.key} aria-pressed={stageFilter===stage.key} onClick={()=>setStageFilter(stageFilter===stage.key?"Todos":stage.key)}><span>{stage.label}</span><strong>{count}</strong><i style={{width:`${events.length?count/events.length*100:0}%`}}/></button>})}</section>
+    <article className="panel table-panel"><div className="table-toolbar"><div><h2>Eventos em andamento</h2><span aria-live="polite">{visibleEvents.length} registros{stageFilter!=="Todos"?` · ${stages.find(s=>s.key===stageFilter)?.label}`:""}</span></div><label className="inline-search"><Icon name="search" size={17}/><input aria-label="Buscar evento, nome ou placa" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Nome, placa ou evento"/></label>{(stageFilter!=="Todos"||search)&&<button className="filter-button" onClick={()=>{setStageFilter("Todos");setSearch("");}}><Icon name="close" size={17}/>Limpar</button>}</div>
+      <div className="data-table"><div className="table-row table-head"><span>Evento</span><span>Associado</span><span>Veículo</span><span>Etapa</span><span>SLA</span><span>Responsável</span><span/></div>{visibleEvents.map(e=><button className="table-row" key={e.id} onClick={()=>onEvent(e)}><span data-label="Evento"><strong>{e.id}</strong><small>{e.updated}</small></span><span data-label="Associado"><strong>{e.associate}</strong><small>{e.city}</small></span><span data-label="Veículo"><strong>{e.vehicle}</strong><small>{e.plate}</small></span><span data-label="Etapa">{stages.find(s=>s.key===e.stage)?.label}</span><span data-label="SLA"><Status value={e.sla}/></span><span data-label="Responsável">{e.owner}</span><span><Icon name="arrow" size={16}/></span></button>)}{!visibleEvents.length&&<p className="empty-results" role="status">Nenhum evento neste filtro.</p>}</div>
     </article>
   </div>;
 }
@@ -304,7 +328,7 @@ function AssociatesView({associates,onNew}:{associates:AssociateItem[];onNew:()=
 }
 
 function ProvidersView({notify}:{notify:(s:string)=>void}){
-  return <div className="workspace"><section className="provider-summary"><div><span>Prestadores ativos</span><strong>24</strong></div><div><span>Vagas hoje</span><strong>11</strong></div><div><span>Prazo médio</span><strong>2,1 dias</strong></div></section><section className="provider-grid">{providers.map(p=><article key={p.name} className="provider-card"><div className="provider-head"><span className="provider-icon"><Icon name="building" size={20}/></span><Status value={p.load>70?"Risco":"Dentro"}/></div><h2>{p.name}</h2><p>{p.specialty} · {p.city}</p><dl><div><dt>Carga</dt><dd>{p.load}%</dd></div><div><dt>Prazo</dt><dd>{p.eta}</dd></div><div><dt>Nota</dt><dd>{p.score}</dd></div><div><dt>Ativos</dt><dd>{p.jobs}</dd></div></dl><div className="capacity"><span><b>Capacidade</b><b>{100-p.load}% livre</b></span><i><b style={{width:`${p.load}%`}}/></i></div><AppButton onClick={()=>notify(`${p.name}: distribuição aberta.`)} icon="route">Distribuir evento</AppButton></article>)}</section></div>;
+  return <div className="workspace"><section className="provider-summary"><div><span>Prestadores ativos</span><strong>24</strong></div><div><span>Vagas hoje</span><strong>11</strong></div><div><span>Prazo médio</span><strong>2,1 dias</strong></div></section><section className="provider-grid">{providers.map(p=><article key={p.name} className="provider-card" data-parallax-card><EdgeLight/><div className="provider-head"><MotionIcon name="building"/><Status value={p.load>70?"Risco":"Dentro"}/></div><h2>{p.name}</h2><p>{p.specialty} · {p.city}</p><dl><div><dt>Carga</dt><dd>{p.load}%</dd></div><div><dt>Prazo</dt><dd>{p.eta}</dd></div><div><dt>Nota</dt><dd>{p.score}</dd></div><div><dt>Ativos</dt><dd>{p.jobs}</dd></div></dl><div className="capacity"><span><b>Capacidade</b><b>{100-p.load}% livre</b></span><i><b style={{width:`${p.load}%`}}/></i></div><AppButton onClick={()=>notify(`${p.name}: distribuição aberta.`)} icon="route">Distribuir evento</AppButton></article>)}</section></div>;
 }
 
 function DocumentsView({notify}:{notify:(s:string)=>void}){
@@ -312,7 +336,7 @@ function DocumentsView({notify}:{notify:(s:string)=>void}){
 }
 
 function RoutinesView({notify,onAgent}:{notify:(s:string)=>void;onAgent:()=>void}){
-  return <div className="workspace"><section className="routine-hero"><div><span className="panel-kicker">Execução recorrente</span><h2>Escolha a tarefa e avance direto para a ação.</h2></div><AppButton kind="dark" icon="command" onClick={onAgent}>Abrir agente</AppButton></section><section className="routine-grid">{routines.map((r,i)=><article key={r.title} className={`routine-card ${i===1?"featured":""}`}><span className="routine-icon"><Icon name={r.icon} size={20}/></span><div><h2>{r.title}</h2><p>{r.note}</p></div><button onClick={()=>notify(`${r.title}: execução iniciada.`)}><span>Executar</span><Icon name="arrow" size={16}/></button></article>)}</section></div>;
+  return <div className="workspace"><section className="routine-hero"><div><span className="panel-kicker">Execução recorrente</span><h2>Escolha a tarefa e avance direto para a ação.</h2></div><AppButton kind="dark" icon="command" onClick={onAgent}>Abrir agente</AppButton></section><section className="routine-grid">{routines.map((r,i)=><article key={r.title} className={`routine-card ${i===1?"featured":""}`} data-parallax-card><EdgeLight/><MotionIcon name={r.icon}/><div><h2>{r.title}</h2><p>{r.note}</p></div><button onClick={()=>notify(`${r.title}: execução iniciada.`)}><span>Executar</span><Icon name="arrow" size={16}/></button></article>)}</section></div>;
 }
 
 function AgentView({events,onEvent,notify}:{events:EventItem[];onEvent:(e:EventItem)=>void;notify:(s:string)=>void}){

@@ -1,6 +1,15 @@
 # Veloce — Curadoria completa
 
-Build ID: `veloce-final-curadoria-completa-2026-08-31`
+Build ID: `veloce-technical-refinement-v18-2026-09-01`
+
+## V18 — refinamento tecnológico
+- Identidade grafite e dourado preservada, Poppins local e opção clara/escura.
+- Gráficos de etapas e prazos calculados a partir dos eventos da sessão; não representam uma série histórica ou integração em tempo real.
+- Clique nas etapas para abrir a esteira filtrada. No celular, gráficos alternados em abas.
+- Luzes nas bordas, pulse e ícones em parallax; efeitos pausam fora da tela e respeitam movimento reduzido.
+- Navegação conserva a tela anterior durante a rolagem suave, evitando saltos de altura.
+- Testes: `npm run validate`, `node scripts/verify-refinement.mjs`, `npm run build`.
+- A validação automatizada de estrutura e dados não substitui a inspeção visual em dispositivos reais.
 
 Esta versão substitui as tentativas anteriores e concentra uma única camada visual em `app/page.tsx` + `app/globals.css`.
 

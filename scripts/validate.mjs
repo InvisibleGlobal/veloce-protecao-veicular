@@ -3,6 +3,8 @@ import path from 'node:path';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const css = fs.readFileSync(path.join(root, 'app/globals.css'), 'utf8');
+const refinement = fs.readFileSync(path.join(root, 'app/refinement.css'), 'utf8');
+const allStyles = css + '\n' + refinement;
 const page = fs.readFileSync(path.join(root, 'app/page.tsx'), 'utf8');
 const layout = fs.readFileSync(path.join(root, 'app/layout.tsx'), 'utf8');
 const buildId = fs.readFileSync(path.join(root, 'public/build-id.txt'), 'utf8').trim();
@@ -11,16 +13,22 @@ const commandSvg = fs.readFileSync(path.join(root, 'public/icons/command.svg'), 
 const failures = [];
 const pass = (condition, message) => { if (!condition) failures.push(message); };
 
-pass(buildId === 'veloce-visao-geral-limpa-v14-2026-08-31', 'build-id incorreto');
+pass(buildId === 'veloce-technical-refinement-v18-2026-09-01', 'build-id incorreto');
 pass(css.includes('--title:48px') && css.includes('--subtitle:18px') && css.includes('--legend:15px'), 'escala desktop 48/18/15 ausente');
 pass(/@media\(max-width:720px\)[\s\S]*--title:29px;--subtitle:15px;--legend:13px/.test(css), 'escala mobile 29/15/13 ausente');
-pass(!css.includes('!important'), 'CSS contém !important');
+pass(!allStyles.includes('!important'), 'CSS contém !important');
 pass(!/<svg\b/i.test(page), 'TSX contém SVG inline');
 pass(page.includes('className="view-transition"') && page.includes('IntersectionObserver'), 'transições de categoria/scroll ausentes');
 pass(page.includes('/icons/message.svg') && css.includes('.agent-input-icon'), 'ícone físico do composer ausente');
 pass(!/\b(blue|navy|cyan|teal|magenta|purple|green)\b/i.test(css + '\n' + page), 'cor/termo fora da identidade encontrado');
 pass(!/\b(copiloto|beta|intelig[eê]ncia|sparkle|glow|m[aá]gico)\b/i.test(page), 'linguagem/estética genérica de IA encontrada');
-pass(!/backdrop-filter|radial-gradient/i.test(css), 'efeito glass/glow encontrado');
+// V18 explicitly requests glass and animated lighting; the old prohibition no longer applies.
+pass(refinement.includes('.edge-light') && refinement.includes('animation-play-state:paused'), 'luzes não limitadas à área visível');
+pass(!/backdrop-filter|will-change:\s*filter|animation:[^;]*(?:blur|shadow)/i.test(allStyles), 'efeito de repintura pesada encontrado');
+pass(refinement.includes('@font-face') && refinement.includes('poppins-regular.woff'), 'Poppins local ausente');
+pass(refinement.includes('[data-theme=dark]') && refinement.includes('.theme-switch'), 'temas incompletos');
+pass(refinement.includes('safe-area-inset-bottom') && refinement.includes('.chart-tabs'), 'composição mobile incompleta');
+pass(page.includes('OperationalCharts') && page.includes('scrollToWorkspace'), 'gráficos/navegação suave ausentes');
 pass(page.includes('https://images.pexels.com/photos/8866777/'), 'foto real de operação Pexels não configurada');
 pass(page.includes('overview-alerts') && page.includes('overview-priorities'), 'nova visão geral essencial ausente');
 pass(!page.includes('dashboard-bento') && !page.includes('metrics-cluster') && !page.includes('dashboard-bottom-grid') && !page.includes('activity-card') && !page.includes('vehicle-highlight') && !page.includes('agenda-card'), 'visão geral ainda contém blocos redundantes');
@@ -37,6 +45,9 @@ const mobileMarker = '/* Mobile — hierarchy fixed: 29 / 15 / 13 */';
 const [desktopCss, mobileCss = ''] = css.split(mobileMarker);
 const desktopSizes = [...desktopCss.matchAll(/font-size:\s*([0-9.]+)px/g)].map(m => Number(m[1]));
 const mobileSizes = [...mobileCss.matchAll(/font-size:\s*([0-9.]+)px/g)].map(m => Number(m[1]));
+const [refinementDesktop, refinementMobile=''] = refinement.split('/* Mobile has its own density and composition. No viewport scaling. */');
+desktopSizes.push(...[...refinementDesktop.matchAll(/font-size:\s*([0-9.]+)px/g)].map(m=>Number(m[1])));
+mobileSizes.push(...[...refinementMobile.matchAll(/font-size:\s*([0-9.]+)px/g)].map(m=>Number(m[1])));
 pass(desktopSizes.every(n => n >= 15), `microtexto desktop encontrado: ${Math.min(...desktopSizes)}px`);
 pass(mobileSizes.every(n => n >= 13), `microtexto mobile encontrado: ${Math.min(...mobileSizes)}px`);
 
