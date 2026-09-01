@@ -4,6 +4,7 @@ import { CSSProperties, FormEvent, ReactNode, useEffect, useMemo, useRef, useSta
 import { EdgeLight, MotionIcon, ThemeSwitch, useSurfaceMotion } from "./refinement";
 import { OperationalCharts } from "./operational-charts";
 import { scrollToWorkspace } from "./scroll";
+import { NotificationBell } from "./notifications";
 
 type View = "Dashboard" | "Esteira" | "Associados" | "Rede" | "Documentos" | "Rotinas" | "Assistente";
 type Stage = "Entrada" | "Documentos" | "Analise" | "Vistoria" | "Aprovacao" | "Reparo" | "Concluido";
@@ -175,7 +176,7 @@ export default function Page() {
   },[view]);
 
   return <main className="app-stage" ref={stageRef}>
-    <AppHeader view={view} onNavigate={navigate} onSearch={()=>setModal("search")} onAgent={()=>navigate("Assistente")} onMenu={()=>setNavOpen(true)} riskCount={risk.length}/>
+    <AppHeader view={view} onNavigate={navigate} onSearch={()=>setModal("search")} onAgent={()=>navigate("Assistente")} onMenu={()=>setNavOpen(true)} events={events} onEvent={setSelectedEvent}/>
     <section className="app-shell">
       <div className="content-shell">
         <div key={view} className="view-transition">
@@ -201,15 +202,15 @@ export default function Page() {
   </main>;
 }
 
-function AppHeader({view,onNavigate,onSearch,onAgent,onMenu,riskCount}:{view:View;onNavigate:(v:View)=>void;onSearch:()=>void;onAgent:()=>void;onMenu:()=>void;riskCount:number}){
+function AppHeader({view,onNavigate,onSearch,onAgent,onMenu,events,onEvent}:{view:View;onNavigate:(v:View)=>void;onSearch:()=>void;onAgent:()=>void;onMenu:()=>void;events:EventItem[];onEvent:(event:EventItem)=>void}){
   return <header className="app-header"><div className="header-inner">
     <button className="mobile-menu" onClick={onMenu} aria-label="Abrir menu"><Icon name="menu" size={21}/></button>
     <button className="brand" onClick={()=>onNavigate("Dashboard")}><span className="brand-mark"><img src="/veloce-mark.svg" alt=""/></span><span><strong>Veloce</strong><small>Central operacional</small></span></button>
-    <nav className="desktop-nav">{nav.map(item=><button key={item.view} className={view===item.view?"active":""} onClick={()=>onNavigate(item.view)}><Icon name={item.icon} size={17}/><span>{item.label}</span></button>)}</nav>
+    <button className="header-search" onClick={onSearch} aria-label="Buscar eventos e associados" aria-haspopup="dialog"><Icon name="search" size={18}/><span>Buscar na Veloce</span><kbd>⌘K</kbd></button>
+    <nav className="desktop-nav" aria-label="Navegação principal">{nav.map(item=><button key={item.view} className={view===item.view?"active":""} aria-current={view===item.view?"page":undefined} onClick={()=>onNavigate(item.view)}><Icon name={item.icon} size={17}/><span>{item.label}</span></button>)}</nav>
     <div className="header-actions">
-      <button className="header-search" onClick={onSearch} aria-label="Buscar eventos e associados"><Icon name="search" size={18}/><span>Buscar</span><kbd>⌘K</kbd></button>
       <ThemeSwitch/>
-      <button className="header-icon" aria-label={`${riskCount} eventos em atenção. Abrir esteira`} onClick={()=>onNavigate("Esteira")}><Icon name="bell" size={19}/><b>{riskCount}</b></button>
+      <NotificationBell events={events} onSelect={id=>{const event=events.find(item=>item.id===id);if(event)onEvent(event);}}/>
       <button className={`agent-header-button ${view==="Assistente"?"active":""}`} onClick={onAgent}><span className="agent-header-icon"><Icon name="command" size={17}/></span><span>Agente</span></button>
       <button className="profile-button" aria-label="Perfil"><img src={operatorPhoto} alt="Profissional da central operacional"/></button>
     </div>

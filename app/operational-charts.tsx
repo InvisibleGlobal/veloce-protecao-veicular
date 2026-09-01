@@ -2,7 +2,7 @@
 
 import { CSSProperties, KeyboardEvent, useState } from "react";
 import { queueMetrics, QueueRecord } from "./chart-data";
-import { EdgeLight, MotionIcon } from "./refinement";
+import { EdgeLight, InstrumentLoop } from "./refinement";
 
 export function OperationalCharts({events,stages,onStage}:{events:QueueRecord[];stages:{key:string;label:string}[];onStage:(stage:string)=>void}){
   const [tab,setTab]=useState("stages");
@@ -25,8 +25,8 @@ export function OperationalCharts({events,stages,onStage}:{events:QueueRecord[];
     </div>
     <article id="chart-stages" className={`panel telemetry-card ${tab==="stages"?"mobile-selected":""}`} data-parallax-card aria-label="Distribuição por etapa">
       <EdgeLight/>
-      <header className="telemetry-head"><div><span className="panel-kicker">Pulso da operação</span><h2>Eventos por etapa</h2></div><MotionIcon name="flow"/></header>
-      <div className="telemetry-total"><strong>{activeStage?.count??data.total}</strong><span>{activeStage?activeStage.label:"eventos na fila"}</span><span className="telemetry-signal" aria-hidden="true"><i/><i/><i/><i/><i/></span></div>
+      <header className="telemetry-head"><div><span className="panel-kicker">Pulso da operação</span><h2>Eventos por etapa</h2></div><InstrumentLoop/></header>
+      <div className="telemetry-total"><strong>{data.total}</strong><span>eventos na fila</span><span className="chart-inspection">{activeStage?`${activeStage.label} · ${activeStage.count}`:"Explore as etapas"}</span></div>
       <div className="stage-chart" onPointerLeave={()=>setHovered(null)}>
         {data.distribution.map((stage,index)=><button key={stage.key} className={hovered===stage.key?"is-inspected":""} onPointerEnter={()=>setHovered(stage.key)} onFocus={()=>setHovered(stage.key)} onBlur={()=>setHovered(null)} onClick={()=>onStage(stage.key)} aria-label={`${stage.label}: ${stage.count} ${stage.count===1?"evento":"eventos"}. Abrir etapa.`}>
           <span className="stage-chart-label">{stage.label}</span><span className="stage-chart-track"><i style={{"--bar-width":`${stage.count/data.max*100}%`,"--bar-order":index} as CSSProperties}/></span><strong>{stage.count}</strong><span className="chart-row-arrow" aria-hidden="true">↗</span>
@@ -35,7 +35,7 @@ export function OperationalCharts({events,stages,onStage}:{events:QueueRecord[];
     </article>
     <article id="chart-deadlines" className={`panel deadline-card ${tab==="deadlines"?"mobile-selected":""}`} aria-label="Situação dos prazos">
       <EdgeLight/>
-      <header className="telemetry-head"><div><span className="panel-kicker">Saúde da fila</span><h2>Controle de prazos</h2></div><span className="svg-icon" style={{"--icon-url":"url(/icons/clock.svg)","--icon-size":"22px"} as CSSProperties} aria-hidden="true"/></header>
+      <header className="telemetry-head"><div><span className="panel-kicker">Saúde da fila</span><h2>Controle de prazos</h2></div><InstrumentLoop kind="clock"/></header>
       <div className="deadline-ring" role="img" aria-label={data.total?`${data.within}% dos eventos dentro do prazo`:"Nenhum evento na fila"} style={{"--ring-a":`${a}%`,"--ring-b":`${b}%`} as CSSProperties} data-empty={!data.total}>
         <div><strong>{activeDeadline?activeDeadline.count:data.total?`${data.within}%`:"—"}</strong><span>{activeDeadline?activeDeadline.label:"dentro do prazo"}</span></div>
       </div>

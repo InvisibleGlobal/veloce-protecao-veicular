@@ -19,6 +19,7 @@ const load=(entry,replacement,context={},cache=new Map())=>{
   const output=ts.transpileModule(input,{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2020}}).outputText;
   const module={exports:{}};cache.set(file,module);
   const localRequire=(specifier)=>{
+    if(context.__modules?.[specifier])return context.__modules[specifier];
     if(!specifier.startsWith('.'))return require(specifier);
     const base=path.resolve(path.dirname(file),specifier);
     const target=['.ts','.tsx'].map(ext=>base+ext).find(p=>fs.existsSync(p));
@@ -78,15 +79,40 @@ const interrupted=scrollHarness();interrupted.step();interrupted.listeners.get('
 const motion=fs.readFileSync(path.join(root,'app/refinement.tsx'),'utf8');
 const refinements=fs.readFileSync(path.join(root,'app/refinement.css'),'utf8');
 const baseStyles=fs.readFileSync(path.join(root,'app/globals.css'),'utf8');
-assert(motion.includes('pathLength="100"'), 'Edge animation follows an unfilled perimeter');
-assert(refinements.includes('fill:none;stroke:var(--edge)'), 'Edge cannot paint a solid interior');
+assert(motion.includes('glass-reflection'), 'Glass reflection replaces travelling border');
+assert(!motion.includes('className="edge-light"'), 'No travelling border is rendered');
 assert(!refinements.includes('mask-composite'), 'No composite mask dependency for edge lights');
 assert(refinements.includes('.header-search>.svg-icon{display:inline-block'), 'Search icon remains visible');
 assert(!/\.header-search span/.test(refinements), 'Search label rules cannot hide icon');
 assert(refinements.includes('.app-header{background:var(--surface)'), 'Opaque sticky header');
 assert(refinements.includes('.critical-panel button>.status{display:flex'), 'Status dot and label stay on one line');
 assert(!/\.critical-panel button:hover\{[^}]*padding/.test(baseStyles), 'Hover preserves row geometry');
-assert(refinements.includes('.edge-light rect,.telemetry-signal i'), 'Reduced motion includes perimeter animation');
+const finish=fs.readFileSync(path.join(root,'app/interface.css'),'utf8');
+assert(finish.includes('@media(prefers-reduced-motion:reduce){.glass-reflection,.instrument-orbit'), 'Reduced motion includes glass and instruments');
+
+const {activeNotices,noticeKey}=load('app/notifications.tsx');
+assert.equal(activeNotices([]).length,0);
+assert.equal(activeNotices(events).length,5);
+assert.equal(activeNotices(events)[0].sla,'Atrasado');
+assert.equal(activeNotices([{...events[0],stage:'Concluido'}]).length,0);
+assert.notEqual(noticeKey(events[0]),noticeKey({...events[0],updated:'agora'}));
+let hooks=[],cursor=0,effects=[],selectedId=null;
+const nativeDialog={open:false,showModal(){this.open=true;},close(){this.open=false;}};
+const hookReact={...React,useState:(initial)=>{const index=cursor++;if(!(index in hooks))hooks[index]=initial;return [hooks[index],value=>{hooks[index]=typeof value==='function'?value(hooks[index]):value;}];},useRef:()=>({current:nativeDialog}),useEffect:fn=>effects.push(fn),useMemo:fn=>fn()};
+const {NotificationBell}=load('app/notifications.tsx',null,{__modules:{react:hookReact}});
+const elements=node=>!React.isValidElement(node)?Array.isArray(node)?node.flatMap(elements):[]:[node,...elements(node.props.children)];
+function notificationRender(){cursor=0;effects=[];const tree=NotificationBell({events,onSelect:id=>selectedId=id});effects.forEach(fn=>fn());return elements(tree);}
+let nodes=notificationRender();
+let trigger=nodes.find(node=>node.props.className==='notification-trigger');
+assert.equal(trigger.props['aria-expanded'],false);
+trigger.props.onClick();nodes=notificationRender();assert.equal(nativeDialog.open,true);
+const markAll=nodes.find(node=>node.type==='button'&&node.props.children==='Marcar todas como lidas');
+markAll.props.onClick();nodes=notificationRender();assert(nodes.find(node=>node.props.className==='notification-trigger').props['aria-label'].includes('0 não lidas'));
+const onlyUnread=nodes.find(node=>node.type==='button'&&typeof node.props['aria-pressed']==='boolean');
+onlyUnread.props.onClick();nodes=notificationRender();assert(nodes.some(node=>node.props.className==='notification-empty'));
+nodes.find(node=>node.type==='button'&&typeof node.props['aria-pressed']==='boolean').props.onClick();nodes=notificationRender();
+nodes.find(node=>typeof node.props.className==='string'&&node.props.className.startsWith('notification-item')).props.onClick();notificationRender();assert(selectedId);assert.equal(nativeDialog.open,false);
+console.log('PASS: notification open, mark all, unread filter, empty state, event selection and close.');
 assert(motion.includes('document.hidden')&&motion.includes('IntersectionObserver')&&motion.includes('prefers-reduced-motion'));
 assert(motion.includes('event.pointerType!=="mouse"'));
 assert(!motion.includes('setState('));

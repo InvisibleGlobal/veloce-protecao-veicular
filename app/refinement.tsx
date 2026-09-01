@@ -2,7 +2,19 @@
 
 import { CSSProperties, RefObject, useEffect, useState } from "react";
 
-export function EdgeLight(){return <svg className="edge-light" aria-hidden="true" focusable="false"><rect x="1" y="1" width="calc(100% - 2px)" height="calc(100% - 2px)" rx="20" pathLength="100"/></svg>;}
+export function EdgeLight(){return <span className="glass-reflection" aria-hidden="true"/>;}
+
+/** Decorative instrument loop, independent from the real values in the charts. */
+export function InstrumentLoop({kind="flow"}:{kind?:"flow"|"clock"}){
+  return <span className={`instrument-loop instrument-${kind}`} aria-hidden="true">
+    <svg viewBox="0 0 80 80" fill="none" focusable="false">
+      <circle cx="40" cy="40" r="31" className="instrument-track"/>
+      <circle cx="40" cy="40" r="31" className="instrument-orbit"/>
+      {kind==="clock"?<g className="instrument-hand"><path d="M40 21v19l13 8"/></g>:<g className="instrument-bars"><path d="M25 48V35M35 52V26M45 49V31M55 45V36"/></g>}
+      <circle cx="40" cy="40" r="2" className="instrument-core"/>
+    </svg>
+  </span>;
+}
 
 export function MotionIcon({name}:{name:string}){
   return <span className="motion-icon" aria-hidden="true"><span className="motion-icon-plane"><span className="svg-icon" style={{"--icon-url":`url(/icons/${name}.svg)`,"--icon-size":"24px"} as CSSProperties}/></span></span>;
