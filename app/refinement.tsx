@@ -2,7 +2,7 @@
 
 import { CSSProperties, RefObject, useEffect, useState } from "react";
 
-export function EdgeLight(){return <span className="edge-light" aria-hidden="true"><i/></span>;}
+export function EdgeLight(){return <svg className="edge-light" aria-hidden="true" focusable="false"><rect x="1" y="1" width="calc(100% - 2px)" height="calc(100% - 2px)" rx="20" pathLength="100"/></svg>;}
 
 export function MotionIcon({name}:{name:string}){
   return <span className="motion-icon" aria-hidden="true"><span className="motion-icon-plane"><span className="svg-icon" style={{"--icon-url":`url(/icons/${name}.svg)`,"--icon-size":"24px"} as CSSProperties}/></span></span>;

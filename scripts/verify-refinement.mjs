@@ -76,6 +76,17 @@ const cancelled=scrollHarness();cancelled.step();cancelled.cancel();assert.equal
 const interrupted=scrollHarness();interrupted.step();interrupted.listeners.get('touchstart')();assert.equal(interrupted.commits,1);assert.equal(interrupted.frames.size,0);
 
 const motion=fs.readFileSync(path.join(root,'app/refinement.tsx'),'utf8');
+const refinements=fs.readFileSync(path.join(root,'app/refinement.css'),'utf8');
+const baseStyles=fs.readFileSync(path.join(root,'app/globals.css'),'utf8');
+assert(motion.includes('pathLength="100"'), 'Edge animation follows an unfilled perimeter');
+assert(refinements.includes('fill:none;stroke:var(--edge)'), 'Edge cannot paint a solid interior');
+assert(!refinements.includes('mask-composite'), 'No composite mask dependency for edge lights');
+assert(refinements.includes('.header-search>.svg-icon{display:inline-block'), 'Search icon remains visible');
+assert(!/\.header-search span/.test(refinements), 'Search label rules cannot hide icon');
+assert(refinements.includes('.app-header{background:var(--surface)'), 'Opaque sticky header');
+assert(refinements.includes('.critical-panel button>.status{display:flex'), 'Status dot and label stay on one line');
+assert(!/\.critical-panel button:hover\{[^}]*padding/.test(baseStyles), 'Hover preserves row geometry');
+assert(refinements.includes('.edge-light rect,.telemetry-signal i'), 'Reduced motion includes perimeter animation');
 assert(motion.includes('document.hidden')&&motion.includes('IntersectionObserver')&&motion.includes('prefers-reduced-motion'));
 assert(motion.includes('event.pointerType!=="mouse"'));
 assert(!motion.includes('setState('));

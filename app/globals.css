@@ -387,8 +387,8 @@ button.table-row:hover{background:var(--surface-soft)}
   .routine-card.featured>button:hover{color:var(--yellow)}
   .prompt-row button:hover{transform:translateY(-1px);box-shadow:0 7px 16px rgba(28,27,23,.055)}
   .agent-input button:hover{background:var(--yellow-hover);transform:translateY(-1px);box-shadow:0 8px 18px rgba(215,172,0,.18)}
-  .critical-panel button:hover{background:#20201B;padding-left:8px;padding-right:8px}
-  .agent-actions-card>button:hover,.drawer-action:hover{background:#FBF9F4;padding-left:6px;padding-right:6px}
+  .critical-panel button:hover{background:#292A23}
+  .agent-actions-card>button:hover,.drawer-action:hover{background:var(--surface-soft)}
   .stage-select button:hover{transform:translateY(-1px);border-color:#D8CEAF;background:#FFFCF2}
   .text-action{transition:transform .2s ease,color .2s ease}
   .text-action:hover{transform:translateX(2px);color:#6C5700}
