@@ -2,7 +2,7 @@
 
 import { CSSProperties, RefObject, useEffect, useState } from "react";
 
-export function EdgeLight(){return <span className="glass-reflection" aria-hidden="true"/>;}
+export function EdgeLight(){return <span className="glass-reflection" aria-hidden="true"><i className="light-top"/><i className="light-right"/><i className="light-bottom"/><i className="light-left"/></span>;}
 
 /** Decorative instrument loop, independent from the real values in the charts. */
 export function InstrumentLoop({kind="flow"}:{kind?:"flow"|"clock"}){

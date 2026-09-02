@@ -3,7 +3,7 @@
 import { CSSProperties, FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { EdgeLight, MotionIcon, ThemeSwitch, useSurfaceMotion } from "./refinement";
 import { OperationalCharts } from "./operational-charts";
-import { scrollToWorkspace } from "./scroll";
+import { scrollToWorkspace, installWheelSmoothing } from "./scroll";
 import { NotificationBell } from "./notifications";
 
 type View = "Dashboard" | "Esteira" | "Associados" | "Rede" | "Documentos" | "Rotinas" | "Assistente";
@@ -122,6 +122,7 @@ export default function Page() {
   const stageRef=useRef<HTMLElement>(null);
   const cancelNavigation=useRef<()=>void>(()=>{});
   useSurfaceMotion(stageRef,view);
+  useEffect(()=>installWheelSmoothing(),[]);
   useEffect(()=>()=>cancelNavigation.current(),[]);
   useEffect(()=>{
     const shortcut=(event:KeyboardEvent)=>{

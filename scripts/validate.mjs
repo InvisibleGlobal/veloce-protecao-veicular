@@ -14,7 +14,7 @@ const commandSvg = fs.readFileSync(path.join(root, 'public/icons/command.svg'), 
 const failures = [];
 const pass = (condition, message) => { if (!condition) failures.push(message); };
 
-pass(buildId === 'veloce-glass-notifications-v19-2026-09-01', 'build-id incorreto');
+pass(buildId === 'veloce-smooth-glass-v20-2026-09-02', 'build-id incorreto');
 pass(css.includes('--title:48px') && css.includes('--subtitle:18px') && css.includes('--legend:15px'), 'escala desktop 48/18/15 ausente');
 pass(/@media\(max-width:720px\)[\s\S]*--title:29px;--subtitle:15px;--legend:13px/.test(css), 'escala mobile 29/15/13 ausente');
 pass(!allStyles.includes('!important'), 'CSS contém !important');

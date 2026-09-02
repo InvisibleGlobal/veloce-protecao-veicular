@@ -62,8 +62,8 @@ assert.equal(queueMetrics(events,stages).within,58);
 
 function scrollHarness({reduced=false,y=1200}={}){
   const frames=new Map(),listeners=new Map(),trace=[];let id=0,time=0,commits=0;
-  const window={scrollY:y,scrollTo:({top})=>{window.scrollY=top;trace.push(top);},addEventListener:(name,fn)=>listeners.set(name,fn),removeEventListener:(name)=>listeners.delete(name)};
-  const context={window,matchMedia:()=>({matches:reduced}),performance:{now:()=>time},requestAnimationFrame:fn=>{frames.set(++id,fn);return id;},cancelAnimationFrame:id=>frames.delete(id)};
+  const window={scrollY:y,scrollTo:({top})=>{window.scrollY=top;trace.push(top);},addEventListener:(name,fn)=>listeners.set(name,fn),removeEventListener:(name)=>listeners.delete(name),dispatchEvent:event=>listeners.get(event.type)?.(event)};
+  const context={window,document:{documentElement:{dataset:{}}},Event,matchMedia:()=>({matches:reduced}),performance:{now:()=>time},requestAnimationFrame:fn=>{frames.set(++id,fn);return id;},cancelAnimationFrame:id=>frames.delete(id)};
   const cancel=load('app/scroll.ts',null,context).scrollToWorkspace(()=>commits++);
   const step=()=>{time+=16;const batch=[...frames.values()];frames.clear();batch.forEach(fn=>fn(time));};
   return {cancel,step,frames,listeners,trace,get commits(){return commits;}};
@@ -74,7 +74,25 @@ assert.equal(scroll.commits,1);assert(scroll.trace.length>15);assert.equal(scrol
 assert(scroll.trace.every((y,i)=>i===0||y<=scroll.trace[i-1]));assert.equal(scroll.listeners.size,0);
 const reduced=scrollHarness({reduced:true});assert.equal(reduced.commits,1);assert.equal(reduced.frames.size,0);
 const cancelled=scrollHarness();cancelled.step();cancelled.cancel();assert.equal(cancelled.commits,0);assert.equal(cancelled.frames.size,0);assert.equal(cancelled.listeners.size,0);
-const interrupted=scrollHarness();interrupted.step();interrupted.listeners.get('touchstart')();assert.equal(interrupted.commits,1);assert.equal(interrupted.frames.size,0);
+const interrupted=scrollHarness();interrupted.step();interrupted.listeners.get('touchstart')();assert.equal(interrupted.commits,0);assert.equal(interrupted.frames.size,0);
+const atTop=scrollHarness({y:0});assert.equal(atTop.commits,0);while(atTop.frames.size)atTop.step();assert.equal(atTop.commits,1);
+
+// Coarse wheel is eased; touch/trackpad, zoom, dialogs and nested scrolling stay native.
+function wheelHarness({reduced=false,fine=true}={}){
+ const frames=new Map(),listeners=new Map();let id=0,time=0;
+ class Element {constructor(nested=false,dialog=false){this.scrollHeight=nested?800:0;this.clientHeight=nested?200:0;this.parentElement=null;this.dialog=dialog;}closest(){return this.dialog?this:null;}}
+ const window={scrollY:0,innerHeight:800,scrollTo:({top})=>window.scrollY=Math.round(top),addEventListener:(name,fn)=>listeners.set(name,fn),removeEventListener:name=>listeners.delete(name)};
+ const context={window,Element,document:{body:{},documentElement:{scrollHeight:2800}},getComputedStyle:()=>({overflowY:'auto'}),matchMedia:q=>({matches:q.includes('reduced')?reduced:fine,addEventListener(){},removeEventListener(){}}),requestAnimationFrame:fn=>{frames.set(++id,fn);return id;},cancelAnimationFrame:id=>frames.delete(id)};
+ const cleanup=load('app/scroll.ts',null,context).installWheelSmoothing();
+ const wheel=(extra={})=>{let prevented=false;listeners.get('wheel')({defaultPrevented:false,cancelable:true,ctrlKey:false,metaKey:false,shiftKey:false,deltaX:0,deltaY:120,deltaMode:0,target:new Element(),preventDefault:()=>prevented=true,...extra});return prevented;};
+ const flush=()=>{let steps=0;while(frames.size&&steps++<250){time+=16;const batch=[...frames.values()];frames.clear();batch.forEach(fn=>fn(time));}assert(steps<250,'wheel easing terminates with rounded scroll positions');};
+ return {window,frames,listeners,wheel,flush,cleanup,Element};
+}
+const wheel=wheelHarness();assert(wheel.wheel());assert.equal(wheel.window.scrollY,0);wheel.flush();assert.equal(wheel.window.scrollY,120);
+assert(!wheel.wheel({deltaY:12}));assert(!wheel.wheel({ctrlKey:true}));assert(!wheel.wheel({target:new wheel.Element(true)}));assert(!wheel.wheel({target:new wheel.Element(false,true)}));
+wheel.wheel({deltaY:9000});wheel.flush();assert.equal(wheel.window.scrollY,2000);wheel.wheel({deltaY:-9000});wheel.flush();assert.equal(wheel.window.scrollY,0);
+wheel.wheel();wheel.listeners.get('veloce:navigate')();assert.equal(wheel.frames.size,0);wheel.cleanup();assert.equal(wheel.listeners.size,0);
+assert(!wheelHarness({reduced:true}).wheel());assert(!wheelHarness({fine:false}).wheel());
 
 const motion=fs.readFileSync(path.join(root,'app/refinement.tsx'),'utf8');
 const refinements=fs.readFileSync(path.join(root,'app/refinement.css'),'utf8');
@@ -88,7 +106,7 @@ assert(refinements.includes('.app-header{background:var(--surface)'), 'Opaque st
 assert(refinements.includes('.critical-panel button>.status{display:flex'), 'Status dot and label stay on one line');
 assert(!/\.critical-panel button:hover\{[^}]*padding/.test(baseStyles), 'Hover preserves row geometry');
 const finish=fs.readFileSync(path.join(root,'app/interface.css'),'utf8');
-assert(finish.includes('@media(prefers-reduced-motion:reduce){.glass-reflection,.instrument-orbit'), 'Reduced motion includes glass and instruments');
+assert(finish.includes('@media(prefers-reduced-motion:reduce){.glass-reflection,.glass-reflection>i'), 'Reduced motion includes glass and instruments');
 
 const {activeNotices,noticeKey}=load('app/notifications.tsx');
 assert.equal(activeNotices([]).length,0);
