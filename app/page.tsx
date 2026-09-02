@@ -207,7 +207,7 @@ function AppHeader({view,onNavigate,onSearch,onAgent,onMenu,events,onEvent}:{vie
   return <header className="app-header"><div className="header-inner">
     <button className="mobile-menu" onClick={onMenu} aria-label="Abrir menu"><Icon name="menu" size={21}/></button>
     <button className="brand" onClick={()=>onNavigate("Dashboard")}><span className="brand-mark"><img src="/veloce-mark.svg" alt=""/></span><span><strong>Veloce</strong><small>Central operacional</small></span></button>
-    <button className="header-search" onClick={onSearch} aria-label="Buscar eventos e associados" aria-haspopup="dialog"><Icon name="search" size={18}/><span>Buscar na Veloce</span><kbd>⌘K</kbd></button>
+    <button className="header-search" onClick={onSearch} aria-label="Buscar eventos e associados" aria-haspopup="dialog"><Icon name="search" size={18}/><span>Buscar</span><kbd>⌘K</kbd></button>
     <nav className="desktop-nav" aria-label="Navegação principal">{nav.map(item=><button key={item.view} className={view===item.view?"active":""} aria-current={view===item.view?"page":undefined} onClick={()=>onNavigate(item.view)}><Icon name={item.icon} size={17}/><span>{item.label}</span></button>)}</nav>
     <div className="header-actions">
       <ThemeSwitch/>

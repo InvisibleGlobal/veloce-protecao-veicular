@@ -106,6 +106,9 @@ assert(refinements.includes('.app-header{background:var(--surface)'), 'Opaque st
 assert(refinements.includes('.critical-panel button>.status{display:flex'), 'Status dot and label stay on one line');
 assert(!/\.critical-panel button:hover\{[^}]*padding/.test(baseStyles), 'Hover preserves row geometry');
 const finish=fs.readFileSync(path.join(root,'app/interface.css'),'utf8');
+assert(finish.includes('.header-inner .desktop-nav button:hover {background:linear-gradient(145deg,#292B28,#111411)'), 'Approved black hover must remain');
+assert(finish.includes('.header-inner .desktop-nav button.active,.header-inner .desktop-nav button.active:hover {background:linear-gradient(145deg,#292B28,#111411)'), 'Approved black active state must remain');
+assert(source.includes('<span>Buscar</span><kbd>⌘K</kbd>'), 'Compact search label fits the reserved header track');
 assert(finish.includes('@media(prefers-reduced-motion:reduce){.glass-reflection,.glass-reflection>i'), 'Reduced motion includes glass and instruments');
 
 const {activeNotices,noticeKey}=load('app/notifications.tsx');
