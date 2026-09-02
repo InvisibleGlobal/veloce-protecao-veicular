@@ -6,6 +6,7 @@ import {createRequire} from 'node:module';
 import ts from 'typescript';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
+import postcss from 'postcss';
 
 const require=createRequire(import.meta.url);
 const root=path.resolve(import.meta.dirname,'..');
@@ -102,10 +103,36 @@ assert(!motion.includes('className="edge-light"'), 'No travelling border is rend
 assert(!refinements.includes('mask-composite'), 'No composite mask dependency for edge lights');
 assert(refinements.includes('.header-search>.svg-icon{display:inline-block'), 'Search icon remains visible');
 assert(!/\.header-search span/.test(refinements), 'Search label rules cannot hide icon');
-assert(refinements.includes('.app-header{background:var(--surface)'), 'Opaque sticky header');
 assert(refinements.includes('.critical-panel button>.status{display:flex'), 'Status dot and label stay on one line');
 assert(!/\.critical-panel button:hover\{[^}]*padding/.test(baseStyles), 'Hover preserves row geometry');
 const finish=fs.readFileSync(path.join(root,'app/interface.css'),'utf8');
+// Parse the actual cascade. Check materials in both themes without browser-only assumptions.
+const sheets=[baseStyles,refinements,finish].map(css=>postcss.parse(css));
+const values=(sheet,selector,property)=>{
+  const matches=[];
+  sheet.walkRules(rule=>{
+    if(rule.selectors?.includes(selector))rule.walkDecls(property,decl=>matches.push(decl.value));
+  });
+  return matches;
+};
+for(const theme of [':root',':root[data-theme=dark]']){
+  for(const token of ['--material-shadow','--material-inset','--control-recess','--control-top','--control-bottom']){
+    assert(values(sheets[0],theme,token).length,`${theme}: ${token} is defined`);
+  }
+}
+assert(values(sheets[2],'.panel','box-shadow').some(value=>value.includes('var(--material-inset)')&&value.includes('var(--material-shadow)')),'Panels retain bevel and elevation');
+assert(values(sheets[2],'.app-header','backdrop-filter').includes('blur(12px)'),'Header keeps its glass material');
+assert(values(sheets[2],'.header-inner>.header-search','box-shadow').includes('var(--control-recess)'),'Search remains a recessed control');
+assert(values(sheets[2],'.header-inner>.header-search','min-width').includes('0'),'Desktop search may shrink inside its own track');
+assert(values(sheets[2],'.header-inner>.header-search>span:not(.svg-icon)','flex').includes('0 0 auto'),'Search label cannot be compressed');
+assert(values(sheets[2],'.header-inner .desktop-nav button:hover','transform').includes('none'),'Black hover cannot squeeze adjacent controls');
+assert(values(sheets[2],'.instrument-loop:before','box-shadow').length,'Instruments have a physical base');
+assert(values(sheets[2],'.light-top','height').includes('2px')&&values(sheets[2],'.light-left','width').includes('2px'),'Lights stay in narrow edge strips');
+sheets[2].walkAtRules('keyframes',rule=>{
+  rule.walkDecls(decl=>assert(['transform','opacity','background-position'].includes(decl.prop),`${rule.params}: no animated blur, shadow or layout`));
+});
+assert(!finish.includes('mask-composite'),'Material lighting cannot recreate the broken cone mask');
+assert(!values(sheets[2],'.panel','transform').length&&!values(sheets[2],'.telemetry-card','transform').length,'No 3D distortion of text or data');
 assert(finish.includes('.header-inner .desktop-nav button:hover {background:linear-gradient(145deg,#292B28,#111411)'), 'Approved black hover must remain');
 assert(finish.includes('.header-inner .desktop-nav button.active,.header-inner .desktop-nav button.active:hover {background:linear-gradient(145deg,#292B28,#111411)'), 'Approved black active state must remain');
 assert(source.includes('<span>Buscar</span><kbd>⌘K</kbd>'), 'Compact search label fits the reserved header track');
@@ -139,4 +166,5 @@ assert(motion.includes('event.pointerType!=="mouse"'));
 assert(!motion.includes('setState('));
 for(const font of ['regular','medium','semibold'])assert(fs.statSync(path.join(root,`public/fonts/poppins-${font}.woff`)).size>1000);
 console.log('PASS: 7 workspace server renders; 5 chart data states; scroll easing, cancellation and reduced motion; local fonts and motion guards.');
+console.log('PASS: parsed material CSS; light/dark depth tokens; black header states; fixed search; contained lighting; no chart distortion.');
 console.log('Scope: structural and unit tests only; no real-device/browser visual verification.');
