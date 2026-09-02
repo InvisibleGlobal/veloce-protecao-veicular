@@ -4,7 +4,8 @@ import path from 'node:path';
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const css = fs.readFileSync(path.join(root, 'app/globals.css'), 'utf8');
 const refinement = fs.readFileSync(path.join(root, 'app/refinement.css'), 'utf8');
-const allStyles = css + '\n' + refinement;
+const interfaceStyles = fs.readFileSync(path.join(root, 'app/interface.css'), 'utf8');
+const allStyles = css + '\n' + refinement + '\n' + interfaceStyles;
 const page = fs.readFileSync(path.join(root, 'app/page.tsx'), 'utf8');
 const layout = fs.readFileSync(path.join(root, 'app/layout.tsx'), 'utf8');
 const buildId = fs.readFileSync(path.join(root, 'public/build-id.txt'), 'utf8').trim();
@@ -13,7 +14,7 @@ const commandSvg = fs.readFileSync(path.join(root, 'public/icons/command.svg'), 
 const failures = [];
 const pass = (condition, message) => { if (!condition) failures.push(message); };
 
-pass(buildId === 'veloce-technical-refinement-v18-2026-09-01', 'build-id incorreto');
+pass(buildId === 'veloce-material-depth-v21-2026-09-02', 'build-id incorreto');
 pass(css.includes('--title:48px') && css.includes('--subtitle:18px') && css.includes('--legend:15px'), 'escala desktop 48/18/15 ausente');
 pass(/@media\(max-width:720px\)[\s\S]*--title:29px;--subtitle:15px;--legend:13px/.test(css), 'escala mobile 29/15/13 ausente');
 pass(!allStyles.includes('!important'), 'CSS contém !important');
@@ -23,8 +24,10 @@ pass(page.includes('/icons/message.svg') && css.includes('.agent-input-icon'), '
 pass(!/\b(blue|navy|cyan|teal|magenta|purple|green)\b/i.test(css + '\n' + page), 'cor/termo fora da identidade encontrado');
 pass(!/\b(copiloto|beta|intelig[eê]ncia|sparkle|glow|m[aá]gico)\b/i.test(page), 'linguagem/estética genérica de IA encontrada');
 // V18 explicitly requests glass and animated lighting; the old prohibition no longer applies.
-pass(refinement.includes('.edge-light') && refinement.includes('animation-play-state:paused'), 'luzes não limitadas à área visível');
-pass(!/backdrop-filter|will-change:\s*filter|animation:[^;]*(?:blur|shadow)/i.test(allStyles), 'efeito de repintura pesada encontrado');
+pass(interfaceStyles.includes('.glass-reflection') && interfaceStyles.includes('animation-play-state:paused'), 'luzes não limitadas à área visível');
+// Static header blur is intentional glass. Never animate blur or shadows.
+pass(!/will-change:\s*filter|animation:[^;]*(?:blur|shadow)/i.test(allStyles), 'efeito de repintura pesada encontrado');
+pass(interfaceStyles.includes('backdrop-filter:blur(12px)') && interfaceStyles.includes('.glass-reflection'), 'acabamento de vidro ausente');
 pass(refinement.includes('@font-face') && refinement.includes('poppins-regular.woff'), 'Poppins local ausente');
 pass(refinement.includes('[data-theme=dark]') && refinement.includes('.theme-switch'), 'temas incompletos');
 pass(refinement.includes('safe-area-inset-bottom') && refinement.includes('.chart-tabs'), 'composição mobile incompleta');

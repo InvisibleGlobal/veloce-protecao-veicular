@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
 import "./refinement.css";
+import "./interface.css";
 
 export const metadata: Metadata = {
   title: "Veloce | Central operacional",
